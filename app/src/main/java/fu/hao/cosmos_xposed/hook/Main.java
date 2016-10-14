@@ -1,7 +1,17 @@
-package fu.hao.cosmos_xposed;
+package fu.hao.cosmos_xposed.hook;
 
+import android.app.PendingIntent;
+import android.os.Build;
+import android.telephony.SmsManager;
 import android.util.Log;
 import android.widget.TextView;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Member;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -20,23 +30,31 @@ public class Main implements IXposedHookLoadPackage {
     private final String TAG = this.getClass().getSimpleName();
 
     /**
-     * 包加载时候的回调
+     * 包加载时候的回调, which is the entry method of the hook system
      */
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        // 将包名不是 com.example.login 的应用剔除掉
-        //if (!lpparam.packageName.equals("com.example.login"))
-           // return;
+        // 将包名不是 edu.ucdavis.test的应用剔除掉
+        if (!lpparam.packageName.equals("edu.ucavis.test")) {
+            return;
+        }
+
         XposedBridge.log("Loaded app: " + lpparam.packageName);
         Log.w(TAG, "Staring hooking " + lpparam.packageName);
 
-        findAndHookMethod(TextView.class, "setText", CharSequence.class,
-                 new XC_MethodHook() {
+        String self = Main.class.getPackage().getName();
+        if (lpparam.packageName.equals(self)) {
+            return;
+        }
+
+        findAndHookMethod(SmsManager.class, "sendTextMessage", String.class,
+                String.class, String.class, PendingIntent.class, PendingIntent.class,
+                new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         XposedBridge.log("开始劫持了~");
                         Log.w(TAG, "Staring hooking!");
-                        param.args[0] = "Hooked!";
+                        param.args[0] = "10086";
                     }
 
                     @Override
@@ -46,4 +64,6 @@ public class Main implements IXposedHookLoadPackage {
                     }
                 });
     }
+
+
 }
