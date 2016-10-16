@@ -13,7 +13,7 @@ public class XMethod {
 
     private Class declaredClass;
     private String methodName;
-    private Class[] paramTypes;
+    private Object[] paramTypes;
 
     public void setDeclaredClass(Class declaredClass) {
         Log.d(TAG, "setDeclaringClass " + declaredClass);
@@ -37,7 +37,7 @@ public class XMethod {
         this.paramTypes = paramTypes;
     }
 
-    public Class[] getParamTypes() {
+    public Object[] getParamTypes() {
         return paramTypes;
     }
 

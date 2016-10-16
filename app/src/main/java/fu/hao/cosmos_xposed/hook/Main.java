@@ -129,7 +129,7 @@ public class Main implements IXposedHookLoadPackage {
                 if (xMethod != null) {
                     Log.w(TAG, xMethod.getMethodName() + ": " + xMethod.getDeclaredClass());
                     if (xMethod.getParamTypes() != null) {
-                        for (Class paramType : xMethod.getParamTypes()) {
+                        for (Object paramType : xMethod.getParamTypes()) {
                             Log.w(TAG, "paramType" + paramType);
                         }
                     }
@@ -199,38 +199,35 @@ public class Main implements IXposedHookLoadPackage {
         }
 
         Log.w(TAG, "Try to load target methods...");
+
         for (XMethod xMethod : getPscoutXMethod()) {
-            Log.w(TAG, "Loading " +xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
-            for (Class paramType : xMethod.getParamTypes()) {
+            Log.w(TAG, "Loading " + xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
+            for (Object paramType : xMethod.getParamTypes()) {
                 Log.w(TAG, "paramType: " + paramType);
             }
 
-            try {
-                findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), xMethod.getParamTypes(),
-                        new XC_MethodHook() {
-                            @Override
-                            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                                XposedBridge.log("开始劫持了~");
-                                Log.w(TAG, "Hooking method " + param.method);
-                                param.args[0] = "10086";
-                            }
-
-                            @Override
-                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                                XposedBridge.log("劫持结束了~");
-                                XposedBridge.log("参数1 = " + param.args[0]);
-
-                                Log.w(TAG, "End hooking method " + param.method);
-                            }
-                        });
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage());
-                for (StackTraceElement stackTraceElement : e.getStackTrace()) {
-                    Log.e(TAG, "              at " + stackTraceElement.getMethodName() + " @ " +
-                            stackTraceElement.getClassName() + ", " + stackTraceElement.getLineNumber() +
-                            " @ " + stackTraceElement.getFileName());
-                }
+            Object[] argus = new Object[xMethod.getParamTypes().length + 1];
+            for (int i = 0; i < xMethod.getParamTypes().length; i++) {
+                argus[i] = xMethod.getParamTypes()[i];
             }
+            argus[xMethod.getParamTypes().length] = new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    XposedBridge.log("开始劫持了~");
+                    Log.w(TAG, "Hooking method " + param.method);
+                    param.args[0] = "10086";
+                }
+
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    XposedBridge.log("劫持结束了~");
+                    XposedBridge.log("参数1 = " + param.args[0]);
+
+                    Log.w(TAG, "End hooking method " + param.method);
+                }
+            };
+
+            findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), argus);
         }
     }
 
