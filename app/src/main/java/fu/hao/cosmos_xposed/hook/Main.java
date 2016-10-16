@@ -42,11 +42,9 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 public class Main implements IXposedHookLoadPackage {
     private final String TAG = this.getClass().getName();
 
-    private static List<String> PscoutMethod;
     private static Set<XMethod> PscoutXMethod;
 
     static {
-        PscoutMethod = new ArrayList<>();
         PscoutXMethod = new HashSet<>();
     }
 
@@ -124,37 +122,8 @@ public class Main implements IXposedHookLoadPackage {
         }
     }
 
-    private void readSensDefFile() {
-        Log.w(TAG, "Read SENS_DEF_File from " + MainApplication.SENS_DEF_FILE);
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(
-                    new InputStreamReader(
-                            new FileInputStream(
-                                    MainApplication.SENS_DEF_FILE_PATH)));
-
-            // do reading, usually loop until end of file reading
-            String mLine;
-            while ((mLine = reader.readLine()) != null) {
-                //process line
-                if (mLine.startsWith("<")) {
-                    PscoutMethod.add(mLine);
-                }
-            }
-        } catch (IOException e) {
-            //log the exception
-            e.printStackTrace();
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    //log the exception
-                }
-            }
-        }
-
-        for (String sensSignature : PscoutMethod) {
+    private void readTARGET_METHODS() {
+        for (String sensSignature : TargetMethods.TARGET_METHODS) {
             try {
                 XMethod xMethod = signature2Class(sensSignature);
                 if (xMethod != null) {
@@ -172,19 +141,53 @@ public class Main implements IXposedHookLoadPackage {
         }
     }
 
+    @Deprecated
+    private void readSensDefFile() {
+        Log.w(TAG, "Read SENS_DEF_File from " + MainApplication.SENS_DEF_FILE);
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(
+                    new InputStreamReader(
+                            new FileInputStream(
+                                    MainApplication.SENS_DEF_FILE_PATH)));
+
+            // do reading, usually loop until end of file reading
+            String mLine;
+            while ((mLine = reader.readLine()) != null) {
+                //process line
+                if (mLine.startsWith("<")) {
+                    //PscoutMethod.add(mLine);
+                }
+            }
+        } catch (IOException e) {
+            //log the exception
+            e.printStackTrace();
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    //log the exception
+                }
+            }
+        }
+
+    }
+
     /**
      * 包加载时候的回调, which is the entry method of the hook system
      */
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        Log.v(TAG, "Package checking: " + lpparam.packageName);
+        Log.w(TAG, "Package checking: " + lpparam.packageName);
         // 将包名不是 edu.ucdavis.test的应用剔除掉
         //if (!lpparam.packageName.equals("edu.ucavis.test")) {
         //return;
         //}
 
-        if (getPscoutXMethod() == null) {
-            readSensDefFile();
+        if (getPscoutXMethod().isEmpty()) {
+            Log.w(TAG, "Try to read TARGET_METHODS...");
+            readTARGET_METHODS();
         }
 
         XposedBridge.log("Loaded app: " + lpparam.packageName);
@@ -195,28 +198,39 @@ public class Main implements IXposedHookLoadPackage {
             return;
         }
 
+        Log.w(TAG, "Try to load target methods...");
         for (XMethod xMethod : getPscoutXMethod()) {
-            Log.w(TAG, xMethod.getMethodName() + " " + xMethod.getDeclaredClass());
+            Log.w(TAG, "Loading " +xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
             for (Class paramType : xMethod.getParamTypes()) {
-                Log.w(TAG, "paramType" + paramType);
+                Log.w(TAG, "paramType: " + paramType);
             }
-            findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), xMethod.getParamTypes(),
-                    new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            XposedBridge.log("开始劫持了~");
-                            Log.w(TAG, "Hooking method " + param.method);
-                            param.args[0] = "10086";
-                        }
 
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                            XposedBridge.log("劫持结束了~");
-                            XposedBridge.log("参数1 = " + param.args[0]);
+            try {
+                findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), xMethod.getParamTypes(),
+                        new XC_MethodHook() {
+                            @Override
+                            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                                XposedBridge.log("开始劫持了~");
+                                Log.w(TAG, "Hooking method " + param.method);
+                                param.args[0] = "10086";
+                            }
 
-                            Log.w(TAG, "End hooking method " + param.method);
-                        }
-                    });
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                XposedBridge.log("劫持结束了~");
+                                XposedBridge.log("参数1 = " + param.args[0]);
+
+                                Log.w(TAG, "End hooking method " + param.method);
+                            }
+                        });
+            } catch (Exception e) {
+                Log.e(TAG, e.getMessage());
+                for (StackTraceElement stackTraceElement : e.getStackTrace()) {
+                    Log.e(TAG, "              at " + stackTraceElement.getMethodName() + " @ " +
+                            stackTraceElement.getClassName() + ", " + stackTraceElement.getLineNumber() +
+                            " @ " + stackTraceElement.getFileName());
+                }
+            }
         }
     }
 

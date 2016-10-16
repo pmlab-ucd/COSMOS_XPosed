@@ -75,6 +75,6 @@ public class MainApplication extends Application {
 
         Log.e(TAG, "COSMOS start!");
         Log.w(TAG, "Copying asset ");
-        copyAsset(getAssets(), SENS_DEF_FILE, SENS_DEF_FILE_PATH);
+        //copyAsset(getAssets(), SENS_DEF_FILE, SENS_DEF_FILE_PATH);
     }
 }
