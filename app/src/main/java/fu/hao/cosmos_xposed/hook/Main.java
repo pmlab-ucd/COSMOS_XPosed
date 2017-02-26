@@ -1,12 +1,17 @@
 package fu.hao.cosmos_xposed.hook;
 
+import android.content.Context;
 import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -14,6 +19,7 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
+import fu.hao.cosmos_xposed.accessibility.UIAccessibilityService;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
@@ -27,7 +33,6 @@ public class Main implements IXposedHookLoadPackage {
     private final String TAG = this.getClass().getName();
 
     private static Set<XMethod> PscoutXMethod;
-
     static {
         PscoutXMethod = new HashSet<>();
     }
@@ -214,6 +219,7 @@ public class Main implements IXposedHookLoadPackage {
                     XposedBridge.log("开始劫持了~");
                     Log.w(TAG, "Hooking method " + param.method);
                     //param.args[0] = "10086";
+                    Log.w(TAG, MainApplication.readFromFileExternally("layout.xml"));
                 }
 
                 @Override
@@ -257,6 +263,5 @@ public class Main implements IXposedHookLoadPackage {
         }
         return classLoader != null ? classLoader.loadClass(name) : Class.forName(name);
     }
-
 
 }

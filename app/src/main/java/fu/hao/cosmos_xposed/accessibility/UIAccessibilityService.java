@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.annotation.TargetApi;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -15,6 +16,14 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,9 +35,13 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+
+import fu.hao.cosmos_xposed.MainApplication;
+import fu.hao.cosmos_xposed.hook.Main;
 
 public class UIAccessibilityService extends android.accessibilityservice.AccessibilityService {
-    private static final String TAG = "MyAccessibility";
+    private static final String TAG = UIAccessibilityService.class.getSimpleName();
 
     @Override
     protected void onServiceConnected() {
@@ -116,9 +129,27 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
             // "/COSMOS/" + "test.xml"));
 
             // Output to console for testing
+            /*
             StreamResult result = new StreamResult(System.out);
 
             transformer.transform(source, result);
+            Log.w(TAG, result.getOutputStream().toString());*/
+
+
+            try {
+                StringWriter writer = new StringWriter();
+                StreamResult result = new StreamResult(writer);
+                // TransformerFactory tFactory = TransformerFactory.newInstance();
+                // Transformer transformer = tFactory.newTransformer();
+                transformer.transform(source,result);
+                String strResult = writer.toString();
+                Log.w(TAG, strResult);
+
+                MainApplication.write2FileExternally("layout.xml", strResult);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         } catch (ParserConfigurationException | TransformerException pce){
             pce.printStackTrace();
         }
@@ -176,9 +207,11 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
         }
     }
 
-
     @Override
     public void onInterrupt() {
         // TODO Auto-generated method stub
     }
+
+
+
 }
