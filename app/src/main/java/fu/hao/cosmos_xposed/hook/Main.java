@@ -1,33 +1,17 @@
 package fu.hao.cosmos_xposed.hook;
 
-import android.app.Application;
-import android.app.PendingIntent;
-import android.os.Build;
-import android.os.Environment;
-import android.telephony.SmsManager;
 import android.util.Log;
-import android.widget.TextView;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Member;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
-import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
 
@@ -52,7 +36,7 @@ public class Main implements IXposedHookLoadPackage {
         return PscoutXMethod;
     }
 
-    public XMethod signature2Class(String sootSignature) throws ClassNotFoundException {
+    public XMethod sootMethodStr2XMethod(String sootSignature) throws ClassNotFoundException {
         XMethod xMethod = new XMethod();
         sootSignature = sootSignature.replace("<", "");
         sootSignature = sootSignature.replace(">", "");
@@ -92,6 +76,11 @@ public class Main implements IXposedHookLoadPackage {
             case "short[]":
                 short[] shorts = new short[1];
                 return shorts.getClass();
+            case "long":
+                return Long.TYPE;
+            case "long[]":
+                long[] longs = new long[1];
+                return longs.getClass();
             case "float":
                 return Float.TYPE;
             case "float[]":
@@ -112,6 +101,11 @@ public class Main implements IXposedHookLoadPackage {
             case "byte[]":
                 byte[] bytes = new byte[1];
                 return bytes.getClass();
+            case "boolean":
+                return Boolean.TYPE;
+            case "boolean[]":
+                boolean[] booleens = new boolean[1];
+                return booleens.getClass();
             default:
                 if (typeName.contains("[]")) {
                     typeName = typeName.replace("[]", "");
@@ -125,7 +119,7 @@ public class Main implements IXposedHookLoadPackage {
     private void readTARGET_METHODS() {
         for (String sensSignature : TargetMethods.TARGET_METHODS) {
             try {
-                XMethod xMethod = signature2Class(sensSignature);
+                XMethod xMethod = sootMethodStr2XMethod(sensSignature);
                 if (xMethod != null) {
                     Log.w(TAG, xMethod.getMethodName() + ": " + xMethod.getDeclaredClass());
                     if (xMethod.getParamTypes() != null) {
@@ -202,6 +196,10 @@ public class Main implements IXposedHookLoadPackage {
 
         for (XMethod xMethod : getPscoutXMethod()) {
             Log.w(TAG, "Loading " + xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
+            if (xMethod.getParamTypes() == null) {
+                continue;
+            }
+
             for (Object paramType : xMethod.getParamTypes()) {
                 Log.w(TAG, "paramType: " + paramType);
             }
@@ -215,7 +213,7 @@ public class Main implements IXposedHookLoadPackage {
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     XposedBridge.log("开始劫持了~");
                     Log.w(TAG, "Hooking method " + param.method);
-                    param.args[0] = "10086";
+                    //param.args[0] = "10086";
                 }
 
                 @Override
