@@ -20,6 +20,7 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
 import fu.hao.cosmos_xposed.accessibility.UIAccessibilityService;
+import fu.hao.cosmos_xposed.ml.Classifier;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
@@ -129,7 +130,7 @@ public class Main implements IXposedHookLoadPackage {
                     Log.w(TAG, xMethod.getMethodName() + ": " + xMethod.getDeclaredClass());
                     if (xMethod.getParamTypes() != null) {
                         for (Object paramType : xMethod.getParamTypes()) {
-                            Log.w(TAG, "paramType" + paramType);
+                            Log.v(TAG, "paramType" + paramType);
                         }
                     }
                     PscoutXMethod.add(xMethod);
@@ -197,16 +198,16 @@ public class Main implements IXposedHookLoadPackage {
             return;
         }
 
-        Log.w(TAG, "Try to load target methods...");
+        Log.v(TAG, "Try to load target methods...");
 
         for (XMethod xMethod : getPscoutXMethod()) {
-            Log.w(TAG, "Loading " + xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
+            Log.v(TAG, "Loading " + xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
             if (xMethod.getParamTypes() == null) {
                 continue;
             }
 
             for (Object paramType : xMethod.getParamTypes()) {
-                Log.w(TAG, "paramType: " + paramType);
+                Log.v(TAG, "paramType: " + paramType);
             }
 
             Object[] argus = new Object[xMethod.getParamTypes().length + 1];
@@ -220,6 +221,8 @@ public class Main implements IXposedHookLoadPackage {
                     Log.w(TAG, "Hooking method " + param.method);
                     //param.args[0] = "10086";
                     Log.w(TAG, MainApplication.readFromFileExternally("layout.xml"));
+                    Classifier classifier = new Classifier();
+                    //classifier.predict();
                 }
 
                 @Override

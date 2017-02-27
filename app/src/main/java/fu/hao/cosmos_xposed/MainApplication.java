@@ -26,6 +26,8 @@ import java.util.Set;
 
 import fu.hao.cosmos_xposed.hook.XMethod;
 
+import static fu.hao.cosmos_xposed.ml.Classifier.MODEL_FILE_PATH;
+
 /**
  * Description:
  *
@@ -56,10 +58,8 @@ public class MainApplication extends Application {
             out = new FileOutputStream(toPath);
             copyFile(in, out);
             in.close();
-            in = null;
             out.flush();
             out.close();
-            out = null;
             Log.w(TAG, "Copy " + fromAssetPath + " to " + toPath);
             return true;
         } catch(Exception e) {
@@ -83,6 +83,7 @@ public class MainApplication extends Application {
         Log.e(TAG, "COSMOS start!");
         Log.w(TAG, "Copying asset ");
         //copyAsset(getAssets(), SENS_DEF_FILE, SENS_DEF_FILE_PATH);
+        copyAsset(getAssets(), "weka_models/test.model", MODEL_FILE_PATH);
     }
 
     public static void write2File(String fileName, String data, Context context) {
@@ -127,18 +128,30 @@ public class MainApplication extends Application {
         return ret;
     }
 
-    public static boolean canWriteOnExternalStorage() {
-        // get the state of your external storage
+    /* Checks if external storage is available for read and write */
+    public static boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
         if (Environment.MEDIA_MOUNTED.equals(state)) {
-            // if storage is mounted return true
-            Log.v(TAG, "Yes, can write to external storage.");
+            return true;
+        }
+        return false;
+    }
+
+    /* Checks if external storage is available to at least read */
+    public static boolean isExternalStorageReadable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state) ||
+                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
             return true;
         }
         return false;
     }
 
     public static void write2FileExternally(String fileName, String data) {
+        if (!isExternalStorageWritable()) {
+            Log.e(TAG, "External storage not writeable!");
+            return;
+        }
         File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() +
                 File.separator + fileName);
         try {
@@ -152,11 +165,16 @@ public class MainApplication extends Application {
         }
     }
 
-    public static String readFromFileExternally(String fileName) {
+    public static String readFromFileExternally(String filePath) {
+        if (!isExternalStorageReadable()) {
+            Log.e(TAG, "External storage not readable!");
+            return null;
+        }
+
         StringBuilder text = new StringBuilder();
         try {
             File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() +
-                    File.separator + fileName);
+                    File.separator + filePath);
 
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
