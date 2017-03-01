@@ -1,17 +1,12 @@
 package fu.hao.cosmos_xposed.hook;
 
-import android.content.Context;
 import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -19,8 +14,7 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
-import fu.hao.cosmos_xposed.accessibility.UIAccessibilityService;
-import fu.hao.cosmos_xposed.ml.Classifier;
+import fu.hao.cosmos_xposed.ml.ClassifierUtils;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
@@ -221,7 +215,7 @@ public class Main implements IXposedHookLoadPackage {
                     Log.w(TAG, "Hooking method " + param.method);
                     //param.args[0] = "10086";
                     Log.w(TAG, MainApplication.readFromFileExternally("layout.xml"));
-                    Classifier classifier = new Classifier();
+                    ClassifierUtils classifier = new ClassifierUtils();
                     //classifier.predict();
                 }
 

@@ -32,4 +32,6 @@ dependencies {
     testCompile 'junit:junit:4.12'
     provided 'de.robv.android.xposed:api:82'
     compile files('libs/weka.jar')
+    compile files('libs/mallet-deps.jar')
+    compile files('libs/mallet.jar')
 }

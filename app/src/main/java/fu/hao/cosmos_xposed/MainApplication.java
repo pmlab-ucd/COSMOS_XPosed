@@ -18,15 +18,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
 
-import fu.hao.cosmos_xposed.hook.XMethod;
+import fu.hao.cosmos_xposed.ml.MalletUtils;
 
-import static fu.hao.cosmos_xposed.ml.Classifier.MODEL_FILE_PATH;
+// import static fu.hao.cosmos_xposed.ml.ClassifierUtils.MODEL_FILE_PATH;
 
 /**
  * Description:
@@ -83,7 +78,8 @@ public class MainApplication extends Application {
         Log.e(TAG, "COSMOS start!");
         Log.w(TAG, "Copying asset ");
         //copyAsset(getAssets(), SENS_DEF_FILE, SENS_DEF_FILE_PATH);
-        copyAsset(getAssets(), "weka_models/test.model", MODEL_FILE_PATH);
+        //copyAsset(getAssets(), "weka_models/test.model", MODEL_FILE_PATH);
+        copyAsset(getAssets(), "mallet/trained.model", MalletUtils.MODEL_FILE_PATH);
     }
 
     public static void write2File(String fileName, String data, Context context) {
