@@ -19,9 +19,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 
-import fu.hao.cosmos_xposed.ml.MalletUtils;
+import static fu.hao.cosmos_xposed.ml.WekaUtils.MODEL_FILE_PATH;
 
-// import static fu.hao.cosmos_xposed.ml.ClassifierUtils.MODEL_FILE_PATH;
+// import static fu.hao.cosmos_xposed.ml.WekaUtils.MODEL_FILE_PATH;
 
 /**
  * Description:
@@ -78,8 +78,7 @@ public class MainApplication extends Application {
         Log.e(TAG, "COSMOS start!");
         Log.w(TAG, "Copying asset ");
         //copyAsset(getAssets(), SENS_DEF_FILE, SENS_DEF_FILE_PATH);
-        //copyAsset(getAssets(), "weka_models/test.model", MODEL_FILE_PATH);
-        copyAsset(getAssets(), "mallet/trained.model", MalletUtils.MODEL_FILE_PATH);
+        copyAsset(getAssets(), "weka_models/weka.model", MODEL_FILE_PATH);
     }
 
     public static void write2File(String fileName, String data, Context context) {

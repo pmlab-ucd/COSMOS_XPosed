@@ -14,7 +14,8 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
-import fu.hao.cosmos_xposed.ml.ClassifierUtils;
+import fu.hao.cosmos_xposed.ml.WekaUtils;
+import weka.classifiers.meta.FilteredClassifier;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
@@ -215,8 +216,8 @@ public class Main implements IXposedHookLoadPackage {
                     Log.w(TAG, "Hooking method " + param.method);
                     //param.args[0] = "10086";
                     Log.w(TAG, MainApplication.readFromFileExternally("layout.xml"));
-                    ClassifierUtils classifier = new ClassifierUtils();
-                    //classifier.predict();
+                    FilteredClassifier filteredClassifier = WekaUtils.loadClassifier(WekaUtils.MODEL_FILE_PATH);
+                    Log.w(TAG, filteredClassifier.getBatchSize());
                 }
 
                 @Override
