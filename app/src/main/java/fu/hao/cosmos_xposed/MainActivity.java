@@ -5,11 +5,23 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.io.File;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import fu.hao.cosmos_xposed.ml.WekaUtils;
+import fu.hao.cosmos_xposed.utils.XMLParser;
+import weka.classifiers.meta.FilteredClassifier;
+import weka.filters.unsupervised.attribute.StringToWordVector;
+
 public class MainActivity extends AppCompatActivity {
+    private static String TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +39,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        try {
+            FilteredClassifier filteredClassifier = WekaUtils.loadClassifier(getAssets().open("weka/weka.model"));
+            Log.w(TAG, filteredClassifier.getRevision());
+            List<String> unlabelled = new ArrayList<>();
+            unlabelled.add("hello world");
+
+            StringToWordVector stringToWordVector = WekaUtils.loadStr2WordVec(getAssets().open("weka/weka.filter"));
+            List<String> res = WekaUtils.predict(unlabelled, stringToWordVector, filteredClassifier, null);
+            for (String subres : res) {
+                Log.w(TAG, subres);
+            }
+        } catch (Exception exception) {
+            exception.printStackTrace();
+        }
     }
 
     @Override

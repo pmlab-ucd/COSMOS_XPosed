@@ -19,9 +19,10 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 
-import static fu.hao.cosmos_xposed.ml.WekaUtils.MODEL_FILE_PATH;
+import weka.filters.Filter;
 
-// import static fu.hao.cosmos_xposed.ml.WekaUtils.MODEL_FILE_PATH;
+import static fu.hao.cosmos_xposed.ml.WekaUtils.MODEL_FILE_PATH;
+import static fu.hao.cosmos_xposed.ml.WekaUtils.STRING_VEC_FILTER_PATH;
 
 /**
  * Description:
@@ -37,25 +38,24 @@ public class MainApplication extends Application {
             Environment.getExternalStorageDirectory().getAbsolutePath() + "/COSMOS/" + SENS_DEF_FILE;
 
     private boolean copyAsset(AssetManager assetManager,
-                                     String fromAssetPath, String toPath) {
+                                     String fromAssetPath, File newFile, boolean update) {
         InputStream in = null;
         OutputStream out = null;
         try {
             in = assetManager.open(fromAssetPath);
-            File newFile = new File(toPath);
-            if (newFile.exists()) {
+            if (!update && newFile.exists()) {
                 return false;
             }
             if (!newFile.getParentFile().exists()) {
                 newFile.getParentFile().mkdirs();
             }
             newFile.createNewFile();
-            out = new FileOutputStream(toPath);
+            out = new FileOutputStream(newFile);
             copyFile(in, out);
             in.close();
             out.flush();
             out.close();
-            Log.w(TAG, "Copy " + fromAssetPath + " to " + toPath);
+            Log.w(TAG, "Copy " + fromAssetPath + " to " + newFile.getAbsolutePath());
             return true;
         } catch(Exception e) {
             e.printStackTrace();
@@ -78,7 +78,8 @@ public class MainApplication extends Application {
         Log.e(TAG, "COSMOS start!");
         Log.w(TAG, "Copying asset ");
         //copyAsset(getAssets(), SENS_DEF_FILE, SENS_DEF_FILE_PATH);
-        copyAsset(getAssets(), "weka_models/weka.model", MODEL_FILE_PATH);
+        copyAsset(getAssets(), "weka/weka.model", getFileExternally(MODEL_FILE_PATH), true);
+        copyAsset(getAssets(), "weka/weka.filter", getFileExternally(STRING_VEC_FILTER_PATH), true);
     }
 
     public static void write2File(String fileName, String data, Context context) {
@@ -160,6 +161,11 @@ public class MainApplication extends Application {
         }
     }
 
+    public static File getFileExternally(String filePath) {
+        return new File(Environment.getExternalStorageDirectory().getAbsolutePath() +
+                File.separator + filePath);
+    }
+
     public static String readFromFileExternally(String filePath) {
         if (!isExternalStorageReadable()) {
             Log.e(TAG, "External storage not readable!");
@@ -168,9 +174,7 @@ public class MainApplication extends Application {
 
         StringBuilder text = new StringBuilder();
         try {
-            File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() +
-                    File.separator + filePath);
-
+            File file = getFileExternally(filePath);
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
             while ((line = br.readLine()) != null) {

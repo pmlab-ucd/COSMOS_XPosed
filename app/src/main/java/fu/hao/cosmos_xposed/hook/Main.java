@@ -3,10 +3,13 @@ package fu.hao.cosmos_xposed.hook;
 import android.util.Log;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -15,7 +18,9 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
 import fu.hao.cosmos_xposed.ml.WekaUtils;
+import fu.hao.cosmos_xposed.utils.XMLParser;
 import weka.classifiers.meta.FilteredClassifier;
+import weka.filters.unsupervised.attribute.StringToWordVector;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 
@@ -215,9 +220,27 @@ public class Main implements IXposedHookLoadPackage {
                     XposedBridge.log("开始劫持了~");
                     Log.w(TAG, "Hooking method " + param.method);
                     //param.args[0] = "10086";
-                    Log.w(TAG, MainApplication.readFromFileExternally("layout.xml"));
-                    FilteredClassifier filteredClassifier = WekaUtils.loadClassifier(WekaUtils.MODEL_FILE_PATH);
-                    Log.w(TAG, filteredClassifier.getBatchSize());
+                    File layoutFile = MainApplication.getFileExternally("layout.xml");
+                    StringBuilder stringBuilder = new StringBuilder();
+                    for (String text : XMLParser.getTexts(layoutFile)) {
+                        stringBuilder.append(text);
+                    }
+                    Log.w(TAG, "Texts: " + stringBuilder.toString());
+                    if (stringBuilder.length() < 1) {
+                        return;
+                    }
+
+                    FilteredClassifier filteredClassifier = WekaUtils.loadClassifier(
+                            MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
+                    List<String> unlabelled = new ArrayList<>();
+                    unlabelled.add(stringBuilder.toString());
+
+                    StringToWordVector stringToWordVector = WekaUtils.loadStr2WordVec(
+                            MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
+                    List<String> res = WekaUtils.predict(unlabelled, stringToWordVector, filteredClassifier, null);
+                    for (String subres : res) {
+                        Log.w(TAG, "Predicted as " + subres);
+                    }
                 }
 
                 @Override
