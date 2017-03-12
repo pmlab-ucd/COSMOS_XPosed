@@ -1,6 +1,19 @@
 package fu.hao.cosmos_xposed.hook;
 
+import android.app.AndroidAppHelper;
+import android.app.Service;
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.ContextWrapper;
+import android.content.Intent;
+import android.database.Cursor;
+import android.os.IBinder;
+import android.provider.Settings;
+import android.support.annotation.Nullable;
 import android.util.Log;
+import android.widget.Toast;
+
+import org.w3c.dom.NodeList;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -18,11 +31,13 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
 import fu.hao.cosmos_xposed.ml.WekaUtils;
+import fu.hao.cosmos_xposed.utils.MyContentProvider;
 import fu.hao.cosmos_xposed.utils.XMLParser;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.unsupervised.attribute.StringToWordVector;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.CONTENT_URI;
 
 /**
  * Description:
@@ -30,7 +45,7 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
  * @author Hao Fu(haofu AT ucdavis.edu)
  * @since 10/13/2016
  */
-public class Main implements IXposedHookLoadPackage {
+public class Main implements IXposedHookLoadPackage  {
     private final String TAG = this.getClass().getName();
 
     private static Set<XMethod> PscoutXMethod;
@@ -127,7 +142,6 @@ public class Main implements IXposedHookLoadPackage {
             try {
                 XMethod xMethod = sootMethodStr2XMethod(sensSignature);
                 if (xMethod != null) {
-                    Log.w(TAG, xMethod.getMethodName() + ": " + xMethod.getDeclaredClass());
                     if (xMethod.getParamTypes() != null) {
                         for (Object paramType : xMethod.getParamTypes()) {
                             Log.v(TAG, "paramType" + paramType);
@@ -217,12 +231,48 @@ public class Main implements IXposedHookLoadPackage {
             argus[xMethod.getParamTypes().length] = new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    XposedBridge.log("开始劫持了~");
+                    XposedBridge.log("开始劫持了~" + lpparam.packageName);
+                    /*if (!(param.getResult() instanceof Context)) {
+                        Log.e(TAG, param.getResult().toString());
+                        return;
+                    }*/
+                    //Context context = (Context) param.getResult();
+                    Context context = AndroidAppHelper.currentApplication();
+                    ContentResolver cr = context.getContentResolver();
+                    Log.w(TAG, CONTENT_URI.toString());
+                    Cursor cursor = cr.query(CONTENT_URI, null, null, null, null);
+                    if (cursor == null) {
+                        Log.e(TAG, "Cannot get the cursor!");
+                        return;
+                    }
+                    String xmlData = ""; //cursor.getColumnIndex(MyContentProvider.name));
+
+                    if (!cursor.moveToFirst()) {
+                        Log.e(TAG, xmlData + " no content yet!");
+                    } else {
+                        do {
+                            xmlData = xmlData + cursor.getString(cursor.getColumnIndex(MyContentProvider.name));
+                        } while (cursor.moveToNext());
+                    }
+
+                    Log.w(TAG, "XMLData: " + xmlData);
                     Log.w(TAG, "Hooking method " + param.method);
                     //param.args[0] = "10086";
-                    File layoutFile = MainApplication.getFileExternally("layout.xml");
+                    // File layoutFile = MainApplication.getFileExternally("layout.xml");
                     StringBuilder stringBuilder = new StringBuilder();
-                    for (String text : XMLParser.getTexts(layoutFile)) {
+                    NodeList nodeList = XMLParser.getNodeList(xmlData);//layoutFile);
+                    boolean samePkg = false;
+                    for (String pkgClass : XMLParser.getPkg(nodeList)) {
+                        if (pkgClass.equals(lpparam.packageName)) {
+                           samePkg = true;
+                           break;
+                        }
+                    }
+                    if (!samePkg) {
+                        return;
+                    }
+
+                    for (String text : XMLParser.getTexts(nodeList)) {
                         stringBuilder.append(text);
                     }
                     Log.w(TAG, "Texts: " + stringBuilder.toString());
@@ -245,7 +295,7 @@ public class Main implements IXposedHookLoadPackage {
 
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    XposedBridge.log("劫持结束了~");
+                    XposedBridge.log("劫持结束了~" + lpparam.packageName);
                     XposedBridge.log("参数1 = " + param.args[0]);
 
                     Log.w(TAG, "End hooking method " + param.method);
@@ -284,5 +334,6 @@ public class Main implements IXposedHookLoadPackage {
         }
         return classLoader != null ? classLoader.loadClass(name) : Class.forName(name);
     }
+
 
 }

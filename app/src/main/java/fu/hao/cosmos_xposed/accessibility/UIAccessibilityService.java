@@ -4,9 +4,11 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.annotation.TargetApi;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
@@ -39,9 +41,12 @@ import javax.xml.transform.stream.StreamSource;
 
 import fu.hao.cosmos_xposed.MainApplication;
 import fu.hao.cosmos_xposed.hook.Main;
+import fu.hao.cosmos_xposed.utils.MyContentProvider;
+
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.CONTENT_URI;
 
 public class UIAccessibilityService extends android.accessibilityservice.AccessibilityService {
-    private static final String TAG = UIAccessibilityService.class.getSimpleName();
+    private static final String TAG = UIAccessibilityService.class.getName();
 
     @Override
     protected void onServiceConnected() {
@@ -143,9 +148,14 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
                 // Transformer transformer = tFactory.newTransformer();
                 transformer.transform(source,result);
                 String strResult = writer.toString();
-                Log.w(TAG, strResult);
+                Log.w(TAG, "XML: " + strResult);
 
-                MainApplication.write2FileExternally("layout.xml", strResult);
+                ContentValues values = new ContentValues();
+                values.put(MyContentProvider.name, strResult);
+                getContentResolver().delete(CONTENT_URI, null, null);
+                Uri uri = getContentResolver().insert(CONTENT_URI, values);
+                Log.w(TAG, "Layout XML stored: " + uri);
+                //MainApplication.write2FileExternally("layout.xml", strResult);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -181,8 +191,12 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
 
             // Make sure we're running on JELLY_BEAN or higher to use getRid APIs
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN) {
-                childElement.setAttribute("id", childNode.getViewIdResourceName() == null ?
-                        "" : childNode.getViewIdResourceName());//getNodeId(childNode));
+                try {
+                    childElement.setAttribute("id", childNode.getViewIdResourceName() == null ?
+                            "" : childNode.getViewIdResourceName());//getNodeId(childNode));
+                } catch (Exception e) {
+                   e.printStackTrace();
+                }
             }
             childElement.setAttribute("class", childNode.getClassName().toString());
             //childElement.setAttribute("bounds", childNode.getBoundsInScreen());
