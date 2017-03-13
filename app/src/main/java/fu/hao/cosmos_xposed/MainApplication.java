@@ -94,7 +94,6 @@ public class MainApplication extends Application {
     }
 
     public static String readFromFile(String fileName, Context context) {
-
         String ret = "";
 
         try {

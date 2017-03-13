@@ -18,7 +18,7 @@ import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 
 public class MyContentProvider extends ContentProvider {
-    static final String PROVIDER_NAME = "fu.hao.android.contentprovider.MyProvider";
+    static final String PROVIDER_NAME = "fu.hao.cosmos_xposed.utils.MyContentProvider";
     static final String URL = "content://" + PROVIDER_NAME + "/skholinguacp";
     public static final Uri LAYOUT_CONTENT_URI = Uri.parse(URL);
     static final String MODEL_URL = "content://" + PROVIDER_NAME + "/model";
@@ -154,7 +154,12 @@ public class MyContentProvider extends ContentProvider {
     @Override
     public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
         File cacheDir = getContext().getCacheDir();
-        File privateFile = new File(cacheDir, "file.xml");
+        File privateFile = null;
+        if (uri.equals(MODEL_CONTENT_URI)) {
+            privateFile = new File(cacheDir, "weka.model");
+        } else if (uri.equals(STR2VEC_CONTENT_URI)) {
+            privateFile = new File(cacheDir, "weka.filter");
+        }
 
         return ParcelFileDescriptor.open(privateFile, ParcelFileDescriptor.MODE_READ_ONLY);
     }
