@@ -1,8 +1,10 @@
 package fu.hao.cosmos_xposed;
 
 import android.app.Application;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
 
@@ -19,11 +21,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 
-import weka.filters.Filter;
-
-import static fu.hao.cosmos_xposed.ml.WekaUtils.MODEL_FILE_PATH;
-import static fu.hao.cosmos_xposed.ml.WekaUtils.STRING_VEC_FILTER_PATH;
-
 /**
  * Description:
  *
@@ -39,10 +36,8 @@ public class MainApplication extends Application {
 
     private boolean copyAsset(AssetManager assetManager,
                                      String fromAssetPath, File newFile, boolean update) {
-        InputStream in = null;
-        OutputStream out = null;
         try {
-            in = assetManager.open(fromAssetPath);
+            InputStream in = assetManager.open(fromAssetPath);
             if (!update && newFile.exists()) {
                 return false;
             }
@@ -50,7 +45,7 @@ public class MainApplication extends Application {
                 newFile.getParentFile().mkdirs();
             }
             newFile.createNewFile();
-            out = new FileOutputStream(newFile);
+            OutputStream out = new FileOutputStream(newFile);
             copyFile(in, out);
             in.close();
             out.flush();
@@ -78,8 +73,12 @@ public class MainApplication extends Application {
         Log.e(TAG, "COSMOS start!");
         Log.w(TAG, "Copying asset ");
         //copyAsset(getAssets(), SENS_DEF_FILE, SENS_DEF_FILE_PATH);
-        copyAsset(getAssets(), "weka/weka.model", getFileExternally(MODEL_FILE_PATH), true);
-        copyAsset(getAssets(), "weka/weka.filter", getFileExternally(STRING_VEC_FILTER_PATH), true);
+        File cacheDir = getCacheDir();
+        File outFile = new File(cacheDir, "weka.model");
+        copyAsset(getAssets(), "weka/weka.model", outFile, true);
+
+        outFile = new File(cacheDir, "weka.filter");
+        copyAsset(getAssets(), "weka/weka.filter", outFile, true);
     }
 
     public static void write2File(String fileName, String data, Context context) {
@@ -191,7 +190,6 @@ public class MainApplication extends Application {
 
         return text.toString();
     }
-
 
 
 

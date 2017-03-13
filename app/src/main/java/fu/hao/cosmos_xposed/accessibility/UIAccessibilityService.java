@@ -1,16 +1,13 @@
 package fu.hao.cosmos_xposed.accessibility;
 
-import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.annotation.TargetApi;
 import android.content.ComponentName;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Environment;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -18,14 +15,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,13 +27,10 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
 
-import fu.hao.cosmos_xposed.MainApplication;
-import fu.hao.cosmos_xposed.hook.Main;
 import fu.hao.cosmos_xposed.utils.MyContentProvider;
 
-import static fu.hao.cosmos_xposed.utils.MyContentProvider.CONTENT_URI;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
 
 public class UIAccessibilityService extends android.accessibilityservice.AccessibilityService {
     private static final String TAG = UIAccessibilityService.class.getName();
@@ -151,9 +138,9 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
                 Log.w(TAG, "XML: " + strResult);
 
                 ContentValues values = new ContentValues();
-                values.put(MyContentProvider.name, strResult);
-                getContentResolver().delete(CONTENT_URI, null, null);
-                Uri uri = getContentResolver().insert(CONTENT_URI, values);
+                values.put(MyContentProvider.layoutXML, strResult);
+                getContentResolver().delete(LAYOUT_CONTENT_URI, null, null);
+                Uri uri = getContentResolver().insert(LAYOUT_CONTENT_URI, values);
                 Log.w(TAG, "Layout XML stored: " + uri);
                 //MainApplication.write2FileExternally("layout.xml", strResult);
             } catch (Exception e) {

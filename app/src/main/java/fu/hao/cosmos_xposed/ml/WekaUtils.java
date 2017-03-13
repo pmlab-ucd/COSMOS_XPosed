@@ -36,11 +36,7 @@ import java.util.Random;
  * @since 3/1/2017
  */
 public class WekaUtils {
-
     private static String TAG = WekaUtils.class.getName();
-
-    public static final String MODEL_FILE_PATH = "/COSMOS/weka.model";
-    public static final String STRING_VEC_FILTER_PATH = "/COSMOS/weka.filter";
 
     private class LabelledDoc {
         private String label;

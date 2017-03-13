@@ -1,24 +1,17 @@
 package fu.hao.cosmos_xposed.hook;
 
 import android.app.AndroidAppHelper;
-import android.app.Service;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.ContextWrapper;
-import android.content.Intent;
 import android.database.Cursor;
-import android.os.IBinder;
-import android.provider.Settings;
-import android.support.annotation.Nullable;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.w3c.dom.NodeList;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,7 +30,7 @@ import weka.classifiers.meta.FilteredClassifier;
 import weka.filters.unsupervised.attribute.StringToWordVector;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
-import static fu.hao.cosmos_xposed.utils.MyContentProvider.CONTENT_URI;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
 
 /**
  * Description:
@@ -239,8 +232,8 @@ public class Main implements IXposedHookLoadPackage  {
                     //Context context = (Context) param.getResult();
                     Context context = AndroidAppHelper.currentApplication();
                     ContentResolver cr = context.getContentResolver();
-                    Log.w(TAG, CONTENT_URI.toString());
-                    Cursor cursor = cr.query(CONTENT_URI, null, null, null, null);
+                    Log.w(TAG, LAYOUT_CONTENT_URI.toString());
+                    Cursor cursor = cr.query(LAYOUT_CONTENT_URI, null, null, null, null);
                     if (cursor == null) {
                         Log.e(TAG, "Cannot get the cursor!");
                         return;
@@ -251,7 +244,7 @@ public class Main implements IXposedHookLoadPackage  {
                         Log.e(TAG, xmlData + " no content yet!");
                     } else {
                         do {
-                            xmlData = xmlData + cursor.getString(cursor.getColumnIndex(MyContentProvider.name));
+                            xmlData = xmlData + cursor.getString(cursor.getColumnIndex(MyContentProvider.layoutXML));
                         } while (cursor.moveToNext());
                     }
 
@@ -279,14 +272,16 @@ public class Main implements IXposedHookLoadPackage  {
                     if (stringBuilder.length() < 1) {
                         return;
                     }
+                    InputStream inputStream = context.getContentResolver().openInputStream(MyContentProvider.MODEL_CONTENT_URI);
 
-                    FilteredClassifier filteredClassifier = WekaUtils.loadClassifier(
-                            MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
+                    FilteredClassifier filteredClassifier = WekaUtils.loadClassifier(inputStream);
+                            //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
                     List<String> unlabelled = new ArrayList<>();
                     unlabelled.add(stringBuilder.toString());
 
-                    StringToWordVector stringToWordVector = WekaUtils.loadStr2WordVec(
-                            MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
+                    inputStream = context.getContentResolver().openInputStream(MyContentProvider.STR2VEC_CONTENT_URI);
+                    StringToWordVector stringToWordVector = WekaUtils.loadStr2WordVec(inputStream);
+                            // MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
                     List<String> res = WekaUtils.predict(unlabelled, stringToWordVector, filteredClassifier, null);
                     for (String subres : res) {
                         Log.w(TAG, "Predicted as " + subres);

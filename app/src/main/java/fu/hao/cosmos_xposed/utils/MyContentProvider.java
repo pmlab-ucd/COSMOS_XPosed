@@ -1,5 +1,7 @@
 package fu.hao.cosmos_xposed.utils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.HashMap;
 
 import android.content.ContentProvider;
@@ -13,14 +15,21 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 
 public class MyContentProvider extends ContentProvider {
     static final String PROVIDER_NAME = "fu.hao.android.contentprovider.MyProvider";
     static final String URL = "content://" + PROVIDER_NAME + "/skholinguacp";
-    public static final Uri CONTENT_URI = Uri.parse(URL);
+    public static final Uri LAYOUT_CONTENT_URI = Uri.parse(URL);
+    static final String MODEL_URL = "content://" + PROVIDER_NAME + "/model";
+    public static final Uri MODEL_CONTENT_URI = Uri.parse(MODEL_URL);
+
+    static final String STR2VEC_URL = "content://" + PROVIDER_NAME + "/filter";
+    public static final Uri STR2VEC_CONTENT_URI = Uri.parse(STR2VEC_URL);
 
     static final String id = "id";
-    public static final String name = "name";
+    public static final String layoutXML = "name";
+    public static final String model = "model";
     static final int uriCode = 1;
     static final UriMatcher uriMatcher;
     private static HashMap<String, String> values;
@@ -28,11 +37,14 @@ public class MyContentProvider extends ContentProvider {
         uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         uriMatcher.addURI(PROVIDER_NAME, "skholinguacp", uriCode);
         uriMatcher.addURI(PROVIDER_NAME, "skholinguacp/*", uriCode);
+
+        uriMatcher.addURI(PROVIDER_NAME, "model", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "model/*", uriCode);
     }
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        int count = 0;
+        int count;
         switch (uriMatcher.match(uri)) {
             case uriCode:
                 count = db.delete(TABLE_NAME, selection, selectionArgs);
@@ -59,7 +71,7 @@ public class MyContentProvider extends ContentProvider {
     public Uri insert(Uri uri, ContentValues values) {
         long rowID = db.insert(TABLE_NAME, "", values);
         if (rowID > 0) {
-            Uri _uri = ContentUris.withAppendedId(CONTENT_URI, rowID);
+            Uri _uri = ContentUris.withAppendedId(LAYOUT_CONTENT_URI, rowID);
             getContext().getContentResolver().notifyChange(_uri, null);
             return _uri;
         }
@@ -91,7 +103,7 @@ public class MyContentProvider extends ContentProvider {
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
         if (sortOrder == null || sortOrder == "") {
-            sortOrder = name;
+            sortOrder = layoutXML;
         }
         Cursor c = qb.query(db, projection, selection, selectionArgs, null,
                 null, sortOrder);
@@ -137,5 +149,13 @@ public class MyContentProvider extends ContentProvider {
             db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
             onCreate(db);
         }
+    }
+
+    @Override
+    public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
+        File cacheDir = getContext().getCacheDir();
+        File privateFile = new File(cacheDir, "file.xml");
+
+        return ParcelFileDescriptor.open(privateFile, ParcelFileDescriptor.MODE_READ_ONLY);
     }
 }
