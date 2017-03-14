@@ -13,6 +13,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +24,8 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
+import fu.hao.cosmos_xposed.accessibility.LayoutData;
+import fu.hao.cosmos_xposed.accessibility.UIAccessibilityService;
 import fu.hao.cosmos_xposed.ml.WekaUtils;
 import fu.hao.cosmos_xposed.utils.MyContentProvider;
 import fu.hao.cosmos_xposed.utils.XMLParser;
@@ -38,10 +41,11 @@ import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
  * @author Hao Fu(haofu AT ucdavis.edu)
  * @since 10/13/2016
  */
-public class Main implements IXposedHookLoadPackage  {
+public class Main implements IXposedHookLoadPackage {
     private final String TAG = this.getClass().getName();
 
     private static Set<XMethod> PscoutXMethod;
+
     static {
         PscoutXMethod = new HashSet<>();
     }
@@ -231,57 +235,88 @@ public class Main implements IXposedHookLoadPackage  {
                     }*/
                     //Context context = (Context) param.getResult();
                     Context context = AndroidAppHelper.currentApplication();
-                    ContentResolver cr = context.getContentResolver();
-                    Log.w(TAG, LAYOUT_CONTENT_URI.toString());
-                    Cursor cursor = cr.query(LAYOUT_CONTENT_URI, null, null, null, null);
-                    if (cursor == null) {
-                        Log.e(TAG, "Cannot get the cursor!");
-                        return;
-                    }
-                    String xmlData = ""; //cursor.getColumnIndex(MyContentProvider.name));
-
-                    if (!cursor.moveToFirst()) {
-                        Log.e(TAG, xmlData + " no content yet!");
-                    } else {
-                        do {
-                            xmlData = xmlData + cursor.getString(cursor.getColumnIndex(MyContentProvider.layoutXML));
-                        } while (cursor.moveToNext());
-                    }
-
-                    Log.w(TAG, "XMLData: " + xmlData);
-                    Log.w(TAG, "Hooking method " + param.method);
-                    //param.args[0] = "10086";
-                    // File layoutFile = MainApplication.getFileExternally("layout.xml");
-                    StringBuilder stringBuilder = new StringBuilder();
-                    NodeList nodeList = XMLParser.getNodeList(xmlData);//layoutFile);
-                    boolean samePkg = false;
-                    for (String pkgClass : XMLParser.getPkg(nodeList)) {
-                        if (pkgClass.equals(lpparam.packageName)) {
-                           samePkg = true;
-                           break;
+                    String texts = "";
+                    if (UIAccessibilityService.toXml) {
+                        ContentResolver cr = context.getContentResolver();
+                        Cursor cursor = cr.query(LAYOUT_CONTENT_URI, null, null, null, null);
+                        if (cursor == null) {
+                            Log.e(TAG, "Cannot get the cursor!");
+                            return;
                         }
-                    }
-                    if (!samePkg) {
-                        return;
+                        String xmlData = ""; //cursor.getColumnIndex(MyContentProvider.name));
+
+                        if (!cursor.moveToFirst()) {
+                            Log.e(TAG, xmlData + " no content yet!");
+                        } else {
+                            do {
+                                xmlData = xmlData + cursor.getString(cursor.getColumnIndex(MyContentProvider.NAME));
+                            } while (cursor.moveToNext());
+                        }
+
+                        Log.w(TAG, "XMLData: " + xmlData);
+                        Log.w(TAG, "Hooking method " + param.method + " called by " + lpparam.packageName);
+                        //param.args[0] = "10086";
+                        // File layoutFile = MainApplication.getFileExternally("layout.xml");
+
+
+                        if (xmlData.length() < 1) {
+                            return;
+                        }
+                        NodeList nodeList = XMLParser.getNodeList(xmlData);//layoutFile);
+                        boolean samePkg = false;
+                        for (String pkgClass : XMLParser.getPkg(nodeList)) {
+                            if (pkgClass.equals(lpparam.packageName)) {
+                                samePkg = true;
+                                break;
+                            }
+                        }
+                        if (!samePkg) {
+                            return;
+                        }
+
+                        StringBuilder stringBuilder = new StringBuilder();
+                        for (String text : XMLParser.getTexts(nodeList)) {
+                            stringBuilder.append(text);
+                        }
+
+                        texts = stringBuilder.toString();
+                    } else {
+                        InputStream inputStream = context.getContentResolver().openInputStream(
+                                MyContentProvider.LAYOUT_DATA_CONTENT_URI);
+                        ObjectInputStream is = new ObjectInputStream(inputStream);
+                        LayoutData layoutData = (LayoutData) is.readObject();
+                        is.close();
+
+                        if (!layoutData.getPkg().equals(lpparam.packageName)) {
+                            return;
+                        }
+
+                        StringBuilder stringBuilder = new StringBuilder();
+                        for (String text : layoutData.getTexts()) {
+                            stringBuilder.append(text + ";");
+                        }
+                        texts = stringBuilder.toString();
                     }
 
-                    for (String text : XMLParser.getTexts(nodeList)) {
-                        stringBuilder.append(text);
+                    for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
+                        Log.w(TAG, "stackTraceElem: " + stackTraceElement.getMethodName() + ", "
+                                + stackTraceElement.getClassName());
                     }
-                    Log.w(TAG, "Texts: " + stringBuilder.toString());
-                    if (stringBuilder.length() < 1) {
+
+                    Log.w(TAG, "Texts: " + texts);
+                    if (texts.length() < 1) {
                         return;
                     }
                     InputStream inputStream = context.getContentResolver().openInputStream(MyContentProvider.MODEL_CONTENT_URI);
 
                     FilteredClassifier filteredClassifier = WekaUtils.loadClassifier(inputStream);
-                            //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
+                    //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
                     List<String> unlabelled = new ArrayList<>();
-                    unlabelled.add(stringBuilder.toString());
+                    unlabelled.add(texts);
 
                     inputStream = context.getContentResolver().openInputStream(MyContentProvider.STR2VEC_CONTENT_URI);
                     StringToWordVector stringToWordVector = WekaUtils.loadStr2WordVec(inputStream);
-                            // MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
+                    // MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
                     List<String> res = WekaUtils.predict(unlabelled, stringToWordVector, filteredClassifier, null);
                     for (String subres : res) {
                         Log.w(TAG, "Predicted as " + subres);

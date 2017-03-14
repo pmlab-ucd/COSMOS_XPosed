@@ -27,8 +27,17 @@ public class MyContentProvider extends ContentProvider {
     static final String STR2VEC_URL = "content://" + PROVIDER_NAME + "/filter";
     public static final Uri STR2VEC_CONTENT_URI = Uri.parse(STR2VEC_URL);
 
+    static final String EVENT_TYPE_URL = "content://" + PROVIDER_NAME + "/event_type";
+    public static final Uri EVENT_TYPE_CONTENT_URI = Uri.parse(EVENT_TYPE_URL);
+
+    static final String WHO_URL = "content://" + PROVIDER_NAME + "/who";
+    public static final Uri WHO_CONTENT_URI = Uri.parse(WHO_URL);
+
+    static final String LAYOUT_DATA_URL = "content://" + PROVIDER_NAME + "/layout";
+    public static final Uri LAYOUT_DATA_CONTENT_URI = Uri.parse(LAYOUT_DATA_URL);
+
     static final String id = "id";
-    public static final String layoutXML = "name";
+    public static final String NAME = "name";
     public static final String model = "model";
     static final int uriCode = 1;
     static final UriMatcher uriMatcher;
@@ -40,6 +49,18 @@ public class MyContentProvider extends ContentProvider {
 
         uriMatcher.addURI(PROVIDER_NAME, "model", uriCode);
         uriMatcher.addURI(PROVIDER_NAME, "model/*", uriCode);
+
+        uriMatcher.addURI(PROVIDER_NAME, "filter", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "filter/*", uriCode);
+
+        uriMatcher.addURI(PROVIDER_NAME, "event_type", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "event_type/*", uriCode);
+
+        uriMatcher.addURI(PROVIDER_NAME, "who", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "who/*", uriCode);
+
+        uriMatcher.addURI(PROVIDER_NAME, "layout", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "layout/*", uriCode);
     }
 
     @Override
@@ -103,7 +124,7 @@ public class MyContentProvider extends ContentProvider {
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
         if (sortOrder == null || sortOrder == "") {
-            sortOrder = layoutXML;
+            sortOrder = NAME;
         }
         Cursor c = qb.query(db, projection, selection, selectionArgs, null,
                 null, sortOrder);
@@ -159,8 +180,9 @@ public class MyContentProvider extends ContentProvider {
             privateFile = new File(cacheDir, "weka.model");
         } else if (uri.equals(STR2VEC_CONTENT_URI)) {
             privateFile = new File(cacheDir, "weka.filter");
+        } else if (uri.equals(LAYOUT_DATA_CONTENT_URI)) {
+            privateFile = new File(cacheDir, "layout.data");
         }
-
         return ParcelFileDescriptor.open(privateFile, ParcelFileDescriptor.MODE_READ_ONLY);
     }
 }

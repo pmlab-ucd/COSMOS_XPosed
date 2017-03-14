@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityServiceInfo;
 import android.annotation.TargetApi;
 import android.content.ComponentName;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -15,7 +16,14 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,10 +38,14 @@ import javax.xml.transform.stream.StreamResult;
 
 import fu.hao.cosmos_xposed.utils.MyContentProvider;
 
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.EVENT_TYPE_CONTENT_URI;
 import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.WHO_CONTENT_URI;
 
 public class UIAccessibilityService extends android.accessibilityservice.AccessibilityService {
     private static final String TAG = UIAccessibilityService.class.getName();
+
+    public static boolean toXml = false;
 
     @Override
     protected void onServiceConnected() {
@@ -70,13 +82,12 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
         return objHashMatcher.group(0);
     }
 
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         // TODO Change to check event only if new window is created
         int eventType = event.getEventType();
-        String eventText = "";
-        Log.i(TAG, "UI event detected!");
+        Log.i(TAG, "UI event detected!" + getEventText(eventType) + " from " + event.getPackageName());
 
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             if (event.getPackageName() != null && event.getClassName() != null) {
@@ -98,6 +109,33 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
             return;
         }
 
+        LayoutData layoutData = new LayoutData();
+        layoutData.setPkg(event.getPackageName().toString());
+
+        if (eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            String eventText = getEventText(eventType);
+            ContentValues values = new ContentValues();
+            values.put(MyContentProvider.NAME, eventText);
+            getContentResolver().delete(EVENT_TYPE_CONTENT_URI, null, null);
+            Uri uri = getContentResolver().insert(EVENT_TYPE_CONTENT_URI, values);
+            Log.w(TAG, "Event type" + eventText + " stored: " + uri);
+
+            getContentResolver().delete(WHO_CONTENT_URI, null, null);
+            // TODO Insert Relative position of the node at the layout
+            values = new ContentValues();
+            // Make sure we're running on JELLY_BEAN or higher to use getRid APIs
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN) {
+                try {
+                    values.put(MyContentProvider.NAME, nodeInfo.getViewIdResourceName());
+                    Log.w(TAG, "Rid: " + nodeInfo.getViewIdResourceName());
+                    uri = getContentResolver().insert(WHO_CONTENT_URI, values);
+                    Log.w(TAG, "Who stored: " + uri);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         Log.i(TAG, "Examine current page...");
         AccessibilityNodeInfo rootNode = getRootInActiveWindow();
         try {
@@ -109,8 +147,9 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
             Element rootElement = doc.createElement("hierarchy");
             doc.appendChild(rootElement);
 
-            checkNodeInfo(rootNode, doc, rootElement);
+            checkNodeInfo(rootNode, doc, rootElement, layoutData.getTexts());
 
+            if (toXml) {
             // write the content into xml file
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
@@ -128,28 +167,104 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
             Log.w(TAG, result.getOutputStream().toString());*/
 
 
-            try {
-                StringWriter writer = new StringWriter();
-                StreamResult result = new StreamResult(writer);
-                // TransformerFactory tFactory = TransformerFactory.newInstance();
-                // Transformer transformer = tFactory.newTransformer();
-                transformer.transform(source,result);
-                String strResult = writer.toString();
-                Log.w(TAG, "XML: " + strResult);
+                try {
+                    StringWriter writer = new StringWriter();
+                    StreamResult result = new StreamResult(writer);
+                    // TransformerFactory tFactory = TransformerFactory.newInstance();
+                    // Transformer transformer = tFactory.newTransformer();
+                    transformer.transform(source, result);
+                    String strResult = writer.toString();
+                    Log.w(TAG, "XML: " + strResult);
 
-                ContentValues values = new ContentValues();
-                values.put(MyContentProvider.layoutXML, strResult);
-                getContentResolver().delete(LAYOUT_CONTENT_URI, null, null);
-                Uri uri = getContentResolver().insert(LAYOUT_CONTENT_URI, values);
-                Log.w(TAG, "Layout XML stored: " + uri);
-                //MainApplication.write2FileExternally("layout.xml", strResult);
-            } catch (Exception e) {
-                e.printStackTrace();
+                    ContentValues values = new ContentValues();
+                    values.put(MyContentProvider.NAME, strResult);
+                    getContentResolver().delete(LAYOUT_CONTENT_URI, null, null);
+                    Uri uri = getContentResolver().insert(LAYOUT_CONTENT_URI, values);
+                    Log.w(TAG, "Layout XML stored: " + uri);
+                    //MainApplication.write2FileExternally("layout.xml", strResult);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else {
+
+                StringBuilder stringBuilder = new StringBuilder();
+                for (String text : layoutData.getTexts()) {
+                    stringBuilder.append(text + ";");
+                }
+                Log.i(TAG, "Texts: " + stringBuilder.toString());
+
+                //ContentValues values = new ContentValues();
+                //values.put(MyContentProvider.NAME, stringBuilder.toString());
+
+                File cacheDir = getCacheDir();
+                File outFile = new File(cacheDir, "layout.data");
+
+                try {
+                    FileOutputStream fileOutputStream = new FileOutputStream(outFile);
+                    ObjectOutputStream os = new ObjectOutputStream(fileOutputStream);
+                    os.writeObject(layoutData);
+                    os.close();
+                    Log.i(TAG, "layoutData saved.");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-
         } catch (ParserConfigurationException | TransformerException pce){
             pce.printStackTrace();
         }
+    }
+
+    private String getEventText(int eventType) {
+        String eventText = null;
+        switch (eventType) {
+            case AccessibilityEvent.TYPE_VIEW_CLICKED:
+                eventText = "TYPE_VIEW_CLICKED";
+                break;
+            case AccessibilityEvent.TYPE_VIEW_FOCUSED:
+                eventText = "TYPE_VIEW_FOCUSED";
+                break;
+            case AccessibilityEvent.TYPE_VIEW_LONG_CLICKED:
+                eventText = "TYPE_VIEW_LONG_CLICKED";
+                break;
+            case AccessibilityEvent.TYPE_VIEW_SELECTED:
+                eventText = "TYPE_VIEW_SELECTED";
+                break;
+            case AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED:
+                eventText = "TYPE_VIEW_TEXT_CHANGED";
+                break;
+            case AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED:
+                eventText = "TYPE_WINDOW_STATE_CHANGED";
+                break;
+            case AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED:
+                eventText = "TYPE_NOTIFICATION_STATE_CHANGED";
+                break;
+            case AccessibilityEvent.TYPE_TOUCH_EXPLORATION_GESTURE_END:
+                eventText = "TYPE_TOUCH_EXPLORATION_GESTURE_END";
+                break;
+            case AccessibilityEvent.TYPE_ANNOUNCEMENT:
+                eventText = "TYPE_ANNOUNCEMENT";
+                break;
+            case AccessibilityEvent.TYPE_TOUCH_EXPLORATION_GESTURE_START:
+                eventText = "TYPE_TOUCH_EXPLORATION_GESTURE_START";
+                break;
+            case AccessibilityEvent.TYPE_VIEW_HOVER_ENTER:
+                eventText = "TYPE_VIEW_HOVER_ENTER";
+                break;
+            case AccessibilityEvent.TYPE_VIEW_HOVER_EXIT:
+                eventText = "TYPE_VIEW_HOVER_EXIT";
+                break;
+            case AccessibilityEvent.TYPE_VIEW_SCROLLED:
+                eventText = "TYPE_VIEW_SCROLLED";
+                break;
+            case AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED:
+                eventText = "TYPE_VIEW_TEXT_SELECTION_CHANGED";
+                break;
+            case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED:
+                eventText = "TYPE_WINDOW_CONTENT_CHANGED";
+                break;
+        }
+
+        return eventText;
     }
 
     private ActivityInfo tryGetActivity(ComponentName componentName) {
@@ -161,7 +276,7 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
     }
 
     @TargetApi(Build.VERSION_CODES.KITKAT)
-    private void checkNodeInfo(AccessibilityNodeInfo nodeInfo, Document doc, Element element) {
+    private void checkNodeInfo(AccessibilityNodeInfo nodeInfo, Document doc, Element element, List<String> texts) {
         if (nodeInfo == null) {
             return;
         }
@@ -202,9 +317,12 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
             childElement.setAttribute("package", childNode.getPackageName().toString());
             childElement.setAttribute("text", childNode.getText() == null ? "" :
                     childNode.getText().toString());
+            if (childNode.getText() != null) {
+                texts.add(childNode.getText().toString());
+            }
             childElement.setAttribute("index", Integer.toString(i));
 
-            checkNodeInfo(childNode, doc, childElement);
+            checkNodeInfo(childNode, doc, childElement, texts);
         }
     }
 
