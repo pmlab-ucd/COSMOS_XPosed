@@ -12,6 +12,7 @@ import java.util.Set;
  */
 public class TargetMethods {
     public static Set<String> TARGET_METHODS = new HashSet<>();
+    public static Set<String> EVENT_METHODS = new HashSet<>();
 
     static {
         Set<String> aHashSet = new HashSet<>();
@@ -52,5 +53,11 @@ public class TargetMethods {
                 "<android.location.Location: double getLongitude()>"
         }));
         TARGET_METHODS = aHashSet;
+
+        aHashSet = new HashSet<>();
+        aHashSet.addAll(Arrays.asList(new String[]{
+                "<android.view.View: void performClick()>"
+        }));
+        EVENT_METHODS = aHashSet;
     }
 }

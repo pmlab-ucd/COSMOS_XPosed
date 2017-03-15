@@ -118,7 +118,7 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
             values.put(MyContentProvider.NAME, eventText);
             getContentResolver().delete(EVENT_TYPE_CONTENT_URI, null, null);
             Uri uri = getContentResolver().insert(EVENT_TYPE_CONTENT_URI, values);
-            Log.w(TAG, "Event type" + eventText + " stored: " + uri);
+            Log.w(TAG, "Event type " + eventText + " stored: " + uri);
 
             getContentResolver().delete(WHO_CONTENT_URI, null, null);
             // TODO Insert Relative position of the node at the layout

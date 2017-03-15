@@ -5,6 +5,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.util.Log;
+import android.view.View;
 
 import org.w3c.dom.NodeList;
 
@@ -45,13 +46,20 @@ public class Main implements IXposedHookLoadPackage {
     private final String TAG = this.getClass().getName();
 
     private static Set<XMethod> PscoutXMethod;
+    private static Set<XMethod> EVENT_XMETHODS;
+    private View sensitiveView = null;
 
     static {
         PscoutXMethod = new HashSet<>();
+        EVENT_XMETHODS = new HashSet<>();
     }
 
     public static Set<XMethod> getPscoutXMethod() {
         return PscoutXMethod;
+    }
+
+    public static Set<XMethod> getEventXMethods() {
+        return EVENT_XMETHODS;
     }
 
     public XMethod sootMethodStr2XMethod(String sootSignature) throws ClassNotFoundException {
@@ -134,8 +142,8 @@ public class Main implements IXposedHookLoadPackage {
         }
     }
 
-    private void readTARGET_METHODS() {
-        for (String sensSignature : TargetMethods.TARGET_METHODS) {
+    private void readMethods(Set<String> sootDef, Set<XMethod> xMethods) {
+        for (String sensSignature : sootDef) {
             try {
                 XMethod xMethod = sootMethodStr2XMethod(sensSignature);
                 if (xMethod != null) {
@@ -144,7 +152,7 @@ public class Main implements IXposedHookLoadPackage {
                             Log.v(TAG, "paramType" + paramType);
                         }
                     }
-                    PscoutXMethod.add(xMethod);
+                    xMethods.add(xMethod);
                 }
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
@@ -198,11 +206,12 @@ public class Main implements IXposedHookLoadPackage {
 
         if (getPscoutXMethod().isEmpty()) {
             Log.w(TAG, "Try to read TARGET_METHODS...");
-            readTARGET_METHODS();
+            readMethods(TargetMethods.TARGET_METHODS, PscoutXMethod);
+            readMethods(TargetMethods.EVENT_METHODS, EVENT_XMETHODS);
         }
 
         XposedBridge.log("Loaded app: " + lpparam.packageName);
-        Log.w(TAG, "Hooking " + lpparam.packageName);
+        Log.v(TAG, "Hooking " + lpparam.packageName);
 
         String self = Main.class.getPackage().getName();
         if (lpparam.packageName.equals(self)) {
@@ -210,6 +219,32 @@ public class Main implements IXposedHookLoadPackage {
         }
 
         Log.v(TAG, "Try to load target methods...");
+
+        for (final XMethod xMethod : getEventXMethods()) {
+            Log.w(TAG, "Loading " + xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
+
+            XC_MethodHook xc_methodHook = new XC_MethodHook() {
+                @Override
+                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                    Log.w(TAG, "Start Hooking: " + param.method + " with " + param.thisObject +
+                            " called by " + lpparam.packageName);
+
+                    if (param.thisObject instanceof View) {
+                        sensitiveView = (View) param.thisObject;
+                    }
+                }
+
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    XposedBridge.log("劫持结束了~" + lpparam.packageName);
+
+                    Log.w(TAG, "End hooking method " + param.method);
+                }
+            };
+
+            findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), xc_methodHook);
+
+        }
 
         for (final XMethod xMethod : getPscoutXMethod()) {
             Log.v(TAG, "Loading " + xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
@@ -229,7 +264,8 @@ public class Main implements IXposedHookLoadPackage {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     XposedBridge.log("开始劫持了~");
-                    Log.w(TAG, "Start hooking " + xMethod.getMethodName() + " called by " + lpparam.packageName);
+                    Log.w(TAG, "Start Hooking: " + param.method + " with " + param.thisObject +
+                            " called by " + lpparam.packageName);
                     /*if (!(param.getResult() instanceof Context)) {
                         Log.e(TAG, param.getResult().toString());
                         return;
@@ -255,10 +291,8 @@ public class Main implements IXposedHookLoadPackage {
                         }
 
                         Log.w(TAG, "XMLData: " + xmlData);
-                        Log.w(TAG, "Hooking method " + param.method + " called by " + lpparam.packageName);
                         //param.args[0] = "10086";
                         // File layoutFile = MainApplication.getFileExternally("layout.xml");
-
 
                         if (xmlData.length() < 1) {
                             return;
@@ -302,6 +336,23 @@ public class Main implements IXposedHookLoadPackage {
                     for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
                         Log.w(TAG, "stackTraceElem: " + stackTraceElement.getMethodName() + ", "
                                 + stackTraceElement.getClassName());
+                        // TODO Smarter way needed
+                        if (stackTraceElement.getMethodName().contains("performClick")) {
+                            Log.w(TAG, "" + sensitiveView.getResources().getResourceName(sensitiveView.getId()));
+                        }
+                        //load the class to get the information
+                        /*
+                        try {
+                            Class<?> c = Class.forName(stackTraceElement.getClassName());
+                            Method[] methods = c.getMethods();
+                            Class<?>[] parameters = methods[0].getParameterTypes();
+
+                            for (Class<?> paramter : parameters) {
+                                Log.w(TAG, paramter.getName());
+                            }
+                        } catch (Exception e) {
+                            Log.w(TAG, e.getMessage());
+                        }*/
                     }
 
                     Log.w(TAG, "Texts: " + texts);
@@ -314,7 +365,6 @@ public class Main implements IXposedHookLoadPackage {
                     //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
                     List<String> unlabelled = new ArrayList<>();
                     unlabelled.add(texts);
-                    Thread.sleep(5000);
 
                     inputStream = context.getContentResolver().openInputStream(MyContentProvider.STR2VEC_CONTENT_URI);
                     StringToWordVector stringToWordVector = WekaUtils.loadStr2WordVec(inputStream);
