@@ -202,7 +202,7 @@ public class Main implements IXposedHookLoadPackage {
         }
 
         XposedBridge.log("Loaded app: " + lpparam.packageName);
-        Log.w(TAG, "Staring hooking " + lpparam.packageName);
+        Log.w(TAG, "Hooking " + lpparam.packageName);
 
         String self = Main.class.getPackage().getName();
         if (lpparam.packageName.equals(self)) {
@@ -211,7 +211,7 @@ public class Main implements IXposedHookLoadPackage {
 
         Log.v(TAG, "Try to load target methods...");
 
-        for (XMethod xMethod : getPscoutXMethod()) {
+        for (final XMethod xMethod : getPscoutXMethod()) {
             Log.v(TAG, "Loading " + xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
             if (xMethod.getParamTypes() == null) {
                 continue;
@@ -228,7 +228,8 @@ public class Main implements IXposedHookLoadPackage {
             argus[xMethod.getParamTypes().length] = new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    XposedBridge.log("开始劫持了~" + lpparam.packageName);
+                    XposedBridge.log("开始劫持了~");
+                    Log.w(TAG, "Start hooking " + xMethod.getMethodName() + " called by " + lpparam.packageName);
                     /*if (!(param.getResult() instanceof Context)) {
                         Log.e(TAG, param.getResult().toString());
                         return;
@@ -313,6 +314,7 @@ public class Main implements IXposedHookLoadPackage {
                     //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
                     List<String> unlabelled = new ArrayList<>();
                     unlabelled.add(texts);
+                    Thread.sleep(5000);
 
                     inputStream = context.getContentResolver().openInputStream(MyContentProvider.STR2VEC_CONTENT_URI);
                     StringToWordVector stringToWordVector = WekaUtils.loadStr2WordVec(inputStream);
