@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.lang.reflect.Member;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +51,7 @@ public class Main implements IXposedHookLoadPackage {
     private View sensitiveView = null;
     private FilteredClassifier wekaModel = null;
     private StringToWordVector stringToWordVector = null;
+    private Member eventTriggered = null; // The most recent event.
 
     static {
         PscoutXMethod = new HashSet<>();
@@ -230,6 +232,7 @@ public class Main implements IXposedHookLoadPackage {
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     Log.w(TAG, "Start Hooking: " + param.method + " with " + param.thisObject +
                             " called by " + lpparam.packageName);
+                    eventTriggered = param.method;
 
                     if (param.thisObject instanceof View) {
                         sensitiveView = (View) param.thisObject;
@@ -239,13 +242,11 @@ public class Main implements IXposedHookLoadPackage {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     XposedBridge.log("劫持结束了~" + lpparam.packageName);
-
                     Log.w(TAG, "End hooking method " + param.method);
                 }
             };
 
             findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), xc_methodHook);
-
         }
 
         for (final XMethod xMethod : getPscoutXMethod()) {
@@ -336,10 +337,10 @@ public class Main implements IXposedHookLoadPackage {
                     }
 
                     for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
-                        Log.w(TAG, "stackTraceElem: " + stackTraceElement.getMethodName() + ", "
+                        Log.v(TAG, "stackTraceElem: " + stackTraceElement.getMethodName() + ", "
                                 + stackTraceElement.getClassName());
-                        // TODO Smarter way needed
-                        if (stackTraceElement.getMethodName().contains("performClick")) {
+                        // Locate entry point
+                        if (eventTriggered != null && stackTraceElement.getMethodName().contains(eventTriggered.getName())) {
                             Log.w(TAG, "" + sensitiveView.getResources().getResourceName(sensitiveView.getId()));
                         }
                         //load the class to get the information
