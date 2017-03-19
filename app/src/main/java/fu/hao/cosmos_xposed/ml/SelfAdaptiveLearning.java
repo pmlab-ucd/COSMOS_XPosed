@@ -18,6 +18,9 @@ import java.util.Calendar;
 import java.util.List;
 
 import fu.hao.cosmos_xposed.utils.MyContentProvider;
+import weka.classifiers.meta.FilteredClassifier;
+import weka.classifiers.trees.HoeffdingTree;
+import weka.core.Instance;
 import weka.core.Instances;
 
 import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
@@ -47,6 +50,7 @@ public class SelfAdaptiveLearning {
 
     /**
      * Whether perform SelfAdaptiveLearning
+     *
      * @return
      */
     public static boolean doIt() {
@@ -84,17 +88,39 @@ public class SelfAdaptiveLearning {
         } */
     }
 
-    public void exportInstances() {
+    public Instances exportInstances() {
         Cursor cursor = context.getContentResolver().query(NEW_INSTANCE_CONTENT_URI, null, null, null,
                 null);
-        List<String> docs = new ArrayList<>();
-        do {
-            String extracted = cursor.getString(cursor.getColumnIndex(MyContentProvider.NAME));
-            String doc =
-            docs.add());
-        } while (cursor.moveToNext());
-        Instances instances = WekaUtils.docs2Instances(docs);
+        List<LabelledDoc> labelledDocs = new ArrayList<>();
+        if (cursor != null) {
+        /*
+        * Moves to the next row in the cursor. Before the first movement in the cursor, the
+        * "row pointer" is -1, and if you try to retrieve data at that position you will get an
+        * exception.
+        */
+            while (cursor.moveToNext()) {
+                LabelledDoc labelledDoc = new LabelledDoc(
+                        cursor.getString(cursor.getColumnIndex(MyContentProvider.INSTANCE_LABEL)),
+                        cursor.getString(cursor.getColumnIndex(MyContentProvider.INSTANCE_DATA)));
 
+                labelledDocs.add(labelledDoc);
+            }
+        } else {
+
+            // Insert code here to report an error if the cursor is null or the provider threw an exception.
+        }
+
+        return WekaUtils.docs2Instances(labelledDocs, WekaUtils.LABELS);
+    }
+
+    public HoeffdingTree incrementalLearning(Instances instances, HoeffdingTree hoeffdingTree)
+        throws Exception {
+        // train NaiveBayes
+        for (Instance instance : instances) {
+                hoeffdingTree.updateClassifier(instance);
+        }
+
+        return hoeffdingTree;
     }
 
 

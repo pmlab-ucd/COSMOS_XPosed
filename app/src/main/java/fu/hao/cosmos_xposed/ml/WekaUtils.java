@@ -1,6 +1,8 @@
 package fu.hao.cosmos_xposed.ml;
 
 import android.util.Log;
+
+import fu.hao.cosmos_xposed.utils.MyContentProvider;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.classifiers.trees.RandomForest;
@@ -15,12 +17,15 @@ import weka.core.stemmers.SnowballStemmer;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.Remove;
 import weka.filters.unsupervised.attribute.StringToWordVector;
+
 import org.tartarus.snowball.ext.porterStemmer;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+
 import weka.classifiers.Evaluation;
+
 import java.util.Random;
 
 /**
@@ -34,6 +39,15 @@ public class WekaUtils {
 
     private static FilteredClassifier wekaModel;
     private static StringToWordVector stringToWordVector;
+
+    public static List<String> LABELS = new ArrayList<>();
+
+    static {
+        // FIXME
+        LABELS.add("T");
+        LABELS.add("D");
+        LABELS.add("F");
+    }
 
     public static void setStringToWordVector(StringToWordVector stringToWordVector) {
         WekaUtils.stringToWordVector = stringToWordVector;
@@ -114,13 +128,7 @@ public class WekaUtils {
         return filter;
     }
 
-    /**
-     * Creates an ARFF file represented by Instances
-     *
-     * @param docs list of docs return Instances which includes the list of
-     *             docs
-     */
-    public static Instances createArff(List<LabelledDoc> docs, List<String> labels) throws FileNotFoundException {
+    public static Instances docs2Instances(List<LabelledDoc> docs, List<String> labels) {
         ArrayList<Attribute> atts = new ArrayList<>();
         ArrayList<String> classVal = new ArrayList<>();
         for (String label : labels) {
@@ -146,6 +154,19 @@ public class WekaUtils {
         }
         data.setClassIndex(data.numAttributes() - 1);
 
+        return data;
+    }
+
+    /**
+     * Creates an ARFF file represented by Instances
+     *
+     * @param docs list of docs return Instances which includes the list of
+     *             docs
+     */
+    public static Instances createArff(List<LabelledDoc> docs, List<String> labels)
+            throws FileNotFoundException {
+
+        Instances data = docs2Instances(docs, labels);
         System.out.println("--------------------------------------------------");
         System.out.println("Create ARFF file:");
         System.out.println(data.toString());
@@ -154,6 +175,7 @@ public class WekaUtils {
         PrintWriter out = new PrintWriter("data.arff");
         out.print(data.toString());
         out.close();
+
         return data;
     }
 
@@ -285,6 +307,7 @@ public class WekaUtils {
 
     /**
      * Textual Docs to numerical instances
+     *
      * @param docs
      * @param stringToWordVector
      * @return
@@ -297,6 +320,7 @@ public class WekaUtils {
 
     /**
      * Prediction
+     *
      * @param docs
      * @param stringToWordVector
      * @param classifier
