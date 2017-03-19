@@ -1,23 +1,17 @@
 package fu.hao.cosmos_xposed.ml;
 
-import android.content.res.AssetManager;
-import android.os.Environment;
-import android.os.SystemClock;
 import android.util.Log;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.FilteredClassifier;
-import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SerializationHelper;
-import weka.core.converters.ArffLoader;
 import weka.core.converters.ArffSaver;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.core.stemmers.SnowballStemmer;
-import weka.core.stopwords.WordsFromFile;
 import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.Remove;
 import weka.filters.unsupervised.attribute.StringToWordVector;
@@ -38,23 +32,23 @@ import java.util.Random;
 public class WekaUtils {
     private static String TAG = WekaUtils.class.getName();
 
-    private class LabelledDoc {
-        private String label;
-        private String doc = null;
+    private static FilteredClassifier wekaModel;
+    private static StringToWordVector stringToWordVector;
 
-        LabelledDoc(String label, String doc) {
-            this.label = label;
-            doc = doc.replace(",", "");
-            this.doc = doc;
-        }
+    public static void setStringToWordVector(StringToWordVector stringToWordVector) {
+        WekaUtils.stringToWordVector = stringToWordVector;
+    }
 
-        public String getLabel() {
-            return label;
-        }
+    public static StringToWordVector getStringToWordVector() {
+        return stringToWordVector;
+    }
 
-        public String getDoc() {
-            return doc;
-        }
+    public static void setWekaModel(FilteredClassifier filteredClassifier) {
+        WekaUtils.wekaModel = filteredClassifier;
+    }
+
+    public static FilteredClassifier getWekaModel() {
+        return wekaModel;
     }
 
     public static Instances loadArff() throws Exception {
@@ -288,11 +282,31 @@ public class WekaUtils {
         return data;
     }
 
-    public static List<String> predict(List<String> docs, StringToWordVector stringToWordVector,
-                                       FilteredClassifier classifier, Attribute classAttibute) throws Exception {
+
+    /**
+     * Textual Docs to numerical instances
+     * @param docs
+     * @param stringToWordVector
+     * @return
+     */
+    public static Instances docs2Instances(List<String> docs, StringToWordVector stringToWordVector) throws Exception {
         Instances unlabelledInstances = docs2Instances(docs);
         System.out.println(unlabelledInstances);
-        unlabelledInstances = Filter.useFilter(unlabelledInstances, stringToWordVector);
+        return Filter.useFilter(unlabelledInstances, stringToWordVector);
+    }
+
+    /**
+     * Prediction
+     * @param docs
+     * @param stringToWordVector
+     * @param classifier
+     * @param classAttibute
+     * @return
+     * @throws Exception
+     */
+    public static List<String> predict(List<String> docs, StringToWordVector stringToWordVector,
+                                       FilteredClassifier classifier, Attribute classAttibute) throws Exception {
+        Instances unlabelledInstances = docs2Instances(docs, stringToWordVector);
         List<String> results = new ArrayList<>();
         for (Instance instance : unlabelledInstances) {
             Double clsLabel = classifier.classifyInstance(instance);

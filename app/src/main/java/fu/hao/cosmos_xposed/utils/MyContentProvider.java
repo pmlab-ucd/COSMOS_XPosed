@@ -36,9 +36,12 @@ public class MyContentProvider extends ContentProvider {
     static final String LAYOUT_DATA_URL = "content://" + PROVIDER_NAME + "/layout";
     public static final Uri LAYOUT_DATA_CONTENT_URI = Uri.parse(LAYOUT_DATA_URL);
 
-    static final String id = "id";
+    private static final String NEW_INSTANCE_URL = "content://" + PROVIDER_NAME + "/new_instances";
+    public static final Uri NEW_INSTANCE_CONTENT_URI = Uri.parse(NEW_INSTANCE_URL);
+    public static final String INSTANCE_DATA = "instanceData";
+    public static final String INSTANCE_LABEL = "instanceLabel";
+
     public static final String NAME = "name";
-    public static final String model = "model";
     static final int uriCode = 1;
     static final UriMatcher uriMatcher;
     private static HashMap<String, String> values;
@@ -61,6 +64,9 @@ public class MyContentProvider extends ContentProvider {
 
         uriMatcher.addURI(PROVIDER_NAME, "layout", uriCode);
         uriMatcher.addURI(PROVIDER_NAME, "layout/*", uriCode);
+
+        uriMatcher.addURI(PROVIDER_NAME, "new_instances", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "new_instances/*", uriCode);
     }
 
     @Override
@@ -182,7 +188,10 @@ public class MyContentProvider extends ContentProvider {
             privateFile = new File(cacheDir, "weka.filter");
         } else if (uri.equals(LAYOUT_DATA_CONTENT_URI)) {
             privateFile = new File(cacheDir, "layout.data");
+        } else if (uri.equals(NEW_INSTANCE_CONTENT_URI)) {
+            privateFile = new File(cacheDir, "");
         }
+
         return ParcelFileDescriptor.open(privateFile, ParcelFileDescriptor.MODE_READ_ONLY);
     }
 }

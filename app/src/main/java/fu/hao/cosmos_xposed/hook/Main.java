@@ -49,8 +49,6 @@ public class Main implements IXposedHookLoadPackage {
     private static Set<XMethod> PscoutXMethod;
     private static Set<XMethod> EVENT_XMETHODS;
     private View sensitiveView = null;
-    private FilteredClassifier wekaModel = null;
-    private StringToWordVector stringToWordVector = null;
     private Member eventTriggered = null; // The most recent event.
 
     static {
@@ -362,20 +360,23 @@ public class Main implements IXposedHookLoadPackage {
                     if (texts.length() < 1) {
                         return;
                     }
-                    if (wekaModel == null) {
-                        InputStream inputStream = context.getContentResolver().openInputStream(MyContentProvider.MODEL_CONTENT_URI);
-                        wekaModel = WekaUtils.loadClassifier(inputStream);
+                    if (WekaUtils.getWekaModel() == null) {
+                        InputStream inputStream = context.getContentResolver().
+                                openInputStream(MyContentProvider.MODEL_CONTENT_URI);
+                        WekaUtils.setWekaModel(WekaUtils.loadClassifier(inputStream));
                     }
                     //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
                     List<String> unlabelled = new ArrayList<>();
                     unlabelled.add(texts);
 
-                    if (stringToWordVector == null) {
-                        InputStream inputStream = context.getContentResolver().openInputStream(MyContentProvider.STR2VEC_CONTENT_URI);
-                        stringToWordVector = WekaUtils.loadStr2WordVec(inputStream);
+                    if (WekaUtils.getStringToWordVector() == null) {
+                        InputStream inputStream = context.getContentResolver().
+                                openInputStream(MyContentProvider.STR2VEC_CONTENT_URI);
+                        WekaUtils.setStringToWordVector(WekaUtils.loadStr2WordVec(inputStream));
                     }
                     // MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
-                    List<String> res = WekaUtils.predict(unlabelled, stringToWordVector, wekaModel, null);
+                    List<String> res = WekaUtils.predict(unlabelled, WekaUtils.getStringToWordVector(),
+                            WekaUtils.getWekaModel(), null);
                     for (String subres : res) {
                         Log.w(TAG, "Predicted as " + subres);
                     }

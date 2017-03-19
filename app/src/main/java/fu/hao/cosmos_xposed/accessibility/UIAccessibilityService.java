@@ -4,7 +4,6 @@ import android.accessibilityservice.AccessibilityServiceInfo;
 import android.annotation.TargetApi;
 import android.content.ComponentName;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -20,9 +19,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -174,19 +171,18 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
                     // Transformer transformer = tFactory.newTransformer();
                     transformer.transform(source, result);
                     String strResult = writer.toString();
-                    Log.w(TAG, "XML: " + strResult);
+                    Log.i(TAG, "XML: " + strResult);
 
                     ContentValues values = new ContentValues();
                     values.put(MyContentProvider.NAME, strResult);
                     getContentResolver().delete(LAYOUT_CONTENT_URI, null, null);
                     Uri uri = getContentResolver().insert(LAYOUT_CONTENT_URI, values);
-                    Log.w(TAG, "Layout XML stored: " + uri);
+                    Log.i(TAG, "Layout XML stored: " + uri);
                     //MainApplication.write2FileExternally("layout.xml", strResult);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             } else {
-
                 StringBuilder stringBuilder = new StringBuilder();
                 for (String text : layoutData.getTexts()) {
                     stringBuilder.append(text + ";");
