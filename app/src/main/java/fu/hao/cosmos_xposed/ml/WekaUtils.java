@@ -2,7 +2,6 @@ package fu.hao.cosmos_xposed.ml;
 
 import android.util.Log;
 
-import fu.hao.cosmos_xposed.utils.MyContentProvider;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.classifiers.trees.RandomForest;
@@ -37,7 +36,7 @@ import java.util.Random;
 public class WekaUtils {
     private static String TAG = WekaUtils.class.getName();
 
-    private static FilteredClassifier wekaModel;
+    private static Classifier wekaModel;
     private static StringToWordVector stringToWordVector;
 
     public static List<String> LABELS = new ArrayList<>();
@@ -61,7 +60,7 @@ public class WekaUtils {
         WekaUtils.wekaModel = filteredClassifier;
     }
 
-    public static FilteredClassifier getWekaModel() {
+    public static Classifier getWekaModel() {
         return wekaModel;
     }
 
@@ -329,10 +328,11 @@ public class WekaUtils {
      * @throws Exception
      */
     public static List<String> predict(List<String> docs, StringToWordVector stringToWordVector,
-                                       FilteredClassifier classifier, Attribute classAttibute) throws Exception {
+                                       Classifier classifier, Attribute classAttibute) throws Exception {
         Instances unlabelledInstances = docs2Instances(docs, stringToWordVector);
         List<String> results = new ArrayList<>();
         for (Instance instance : unlabelledInstances) {
+            Log.v(TAG, "Instance: " + instance);
             Double clsLabel = classifier.classifyInstance(instance);
 
             if (classAttibute != null && classAttibute.numValues() > 0) {

@@ -1,29 +1,28 @@
 package fu.hao.cosmos_xposed.ml;
 
 import android.app.AndroidAppHelper;
+import android.app.Service;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.IBinder;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
 import fu.hao.cosmos_xposed.utils.MyContentProvider;
-import weka.classifiers.meta.FilteredClassifier;
 import weka.classifiers.trees.HoeffdingTree;
 import weka.core.Instance;
 import weka.core.Instances;
 
-import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
 import static fu.hao.cosmos_xposed.utils.MyContentProvider.NEW_INSTANCE_CONTENT_URI;
 
 /**
@@ -35,10 +34,8 @@ import static fu.hao.cosmos_xposed.utils.MyContentProvider.NEW_INSTANCE_CONTENT_
 public class SelfAdaptiveLearning {
     public static String TAG = SelfAdaptiveLearning.class.getSimpleName();
 
-    private static Context context = AndroidAppHelper.currentApplication();
-
-    public static LabelledDocs getLabelledDocs() throws Exception {
-        InputStream inputStream = context.getContentResolver().openInputStream(
+    public LabelledDocs getLabelledDocs(ContentResolver contentResolver) throws Exception {
+        InputStream inputStream = contentResolver.openInputStream(
                 MyContentProvider.NEW_INSTANCE_CONTENT_URI);
         ObjectInputStream is = new ObjectInputStream(inputStream);
         LabelledDocs labelledDocs = (LabelledDocs) is.readObject();
@@ -47,28 +44,29 @@ public class SelfAdaptiveLearning {
         return labelledDocs;
     }
 
-
     /**
      * Whether perform SelfAdaptiveLearning
      *
      * @return
      */
-    public static boolean doIt() {
+    public static boolean doIt(ContentResolver contentResolver, HoeffdingTree hoeffdingTree) throws Exception {
         Calendar calendar = Calendar.getInstance();
         int hours = calendar.get(Calendar.HOUR_OF_DAY);
 
-        if (hours >= 2 && hours <= 5) {
+        if (!(hours >= 2 && hours <= 5)) {
+            Instances instances = exportInstances(contentResolver);
+            incrementalLearning(contentResolver, instances, hoeffdingTree);
             return true;
         }
 
         return false;
     }
 
-    public void storeNewInstance(String label, String doc) {
+    public static void storeNewInstance(ContentResolver contentResolver, String label, String doc) {
         ContentValues values = new ContentValues();
         values.put(MyContentProvider.INSTANCE_DATA, doc);
         values.put(MyContentProvider.INSTANCE_LABEL, label);
-        Uri uri = context.getContentResolver().insert(MyContentProvider.NEW_INSTANCE_CONTENT_URI, values);
+        Uri uri = contentResolver.insert(MyContentProvider.NEW_INSTANCE_CONTENT_URI, values);
         Log.i(TAG, "New labelled instance stored: " + uri);
 
         /*
@@ -88,16 +86,16 @@ public class SelfAdaptiveLearning {
         } */
     }
 
-    public Instances exportInstances() {
-        Cursor cursor = context.getContentResolver().query(NEW_INSTANCE_CONTENT_URI, null, null, null,
+    public static Instances exportInstances(ContentResolver contentResolver) {
+        Cursor cursor = contentResolver.query(NEW_INSTANCE_CONTENT_URI, null, null, null,
                 null);
         List<LabelledDoc> labelledDocs = new ArrayList<>();
         if (cursor != null) {
-        /*
-        * Moves to the next row in the cursor. Before the first movement in the cursor, the
-        * "row pointer" is -1, and if you try to retrieve data at that position you will get an
-        * exception.
-        */
+            /*
+            * Moves to the next row in the cursor. Before the first movement in the cursor, the
+            * "row pointer" is -1, and if you try to retrieve data at that position you will get an
+            * exception.
+            */
             while (cursor.moveToNext()) {
                 LabelledDoc labelledDoc = new LabelledDoc(
                         cursor.getString(cursor.getColumnIndex(MyContentProvider.INSTANCE_LABEL)),
@@ -106,22 +104,24 @@ public class SelfAdaptiveLearning {
                 labelledDocs.add(labelledDoc);
             }
         } else {
-
             // Insert code here to report an error if the cursor is null or the provider threw an exception.
         }
 
         return WekaUtils.docs2Instances(labelledDocs, WekaUtils.LABELS);
     }
 
-    public HoeffdingTree incrementalLearning(Instances instances, HoeffdingTree hoeffdingTree)
+    public static HoeffdingTree incrementalLearning(ContentResolver contentResolver, Instances instances,
+                                             HoeffdingTree hoeffdingTree)
         throws Exception {
         // train NaiveBayes
         for (Instance instance : instances) {
                 hoeffdingTree.updateClassifier(instance);
         }
 
+        weka.core.SerializationHelper.write(contentResolver.openOutputStream(
+                MyContentProvider.NEW_INSTANCE_CONTENT_URI), hoeffdingTree);
+
         return hoeffdingTree;
     }
-
 
 }

@@ -18,22 +18,22 @@ import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 
 public class MyContentProvider extends ContentProvider {
-    static final String PROVIDER_NAME = "fu.hao.cosmos_xposed.utils.MyContentProvider";
-    static final String URL = "content://" + PROVIDER_NAME + "/skholinguacp";
+    private static final String PROVIDER_NAME = "fu.hao.cosmos_xposed.utils.MyContentProvider";
+    private static final String URL = "content://" + PROVIDER_NAME + "/skholinguacp";
     public static final Uri LAYOUT_CONTENT_URI = Uri.parse(URL);
-    static final String MODEL_URL = "content://" + PROVIDER_NAME + "/model";
+    private static final String MODEL_URL = "content://" + PROVIDER_NAME + "/model";
     public static final Uri MODEL_CONTENT_URI = Uri.parse(MODEL_URL);
 
-    static final String STR2VEC_URL = "content://" + PROVIDER_NAME + "/filter";
+    private static final String STR2VEC_URL = "content://" + PROVIDER_NAME + "/filter";
     public static final Uri STR2VEC_CONTENT_URI = Uri.parse(STR2VEC_URL);
 
-    static final String EVENT_TYPE_URL = "content://" + PROVIDER_NAME + "/event_type";
+    private static final String EVENT_TYPE_URL = "content://" + PROVIDER_NAME + "/event_type";
     public static final Uri EVENT_TYPE_CONTENT_URI = Uri.parse(EVENT_TYPE_URL);
 
-    static final String WHO_URL = "content://" + PROVIDER_NAME + "/who";
+    private static final String WHO_URL = "content://" + PROVIDER_NAME + "/who";
     public static final Uri WHO_CONTENT_URI = Uri.parse(WHO_URL);
 
-    static final String LAYOUT_DATA_URL = "content://" + PROVIDER_NAME + "/layout";
+    private static final String LAYOUT_DATA_URL = "content://" + PROVIDER_NAME + "/layout";
     public static final Uri LAYOUT_DATA_CONTENT_URI = Uri.parse(LAYOUT_DATA_URL);
 
     private static final String NEW_INSTANCE_URL = "content://" + PROVIDER_NAME + "/new_instances";
@@ -157,9 +157,11 @@ public class MyContentProvider extends ContentProvider {
     static final String DATABASE_NAME = "db_contentprovider";
     static final String TABLE_NAME = "names";
     static final int DATABASE_VERSION = 1;
-    static final String CREATE_DB_TABLE = " CREATE TABLE " + TABLE_NAME
-            + " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            + " name TEXT NOT NULL);";
+    static final String CREATE_DB_TABLE = "CREATE TABLE " + TABLE_NAME + "("
+            //+ " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            + INSTANCE_DATA + " TEXT NOT NULL,"
+            + INSTANCE_LABEL + " TEXT NOT NULL,"
+            + NAME + " TEXT NOT NULL" + ");";
 
     private static class DatabaseHelper extends SQLiteOpenHelper {
         DatabaseHelper(Context context) {

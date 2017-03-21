@@ -28,10 +28,12 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
 import fu.hao.cosmos_xposed.accessibility.LayoutData;
 import fu.hao.cosmos_xposed.accessibility.UIAccessibilityService;
+import fu.hao.cosmos_xposed.ml.SelfAdaptiveLearning;
 import fu.hao.cosmos_xposed.ml.WekaUtils;
 import fu.hao.cosmos_xposed.utils.MyContentProvider;
 import fu.hao.cosmos_xposed.utils.XMLParser;
 import weka.classifiers.meta.FilteredClassifier;
+import weka.classifiers.trees.HoeffdingTree;
 import weka.filters.unsupervised.attribute.StringToWordVector;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;

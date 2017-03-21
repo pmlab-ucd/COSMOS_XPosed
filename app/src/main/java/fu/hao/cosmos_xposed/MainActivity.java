@@ -1,5 +1,6 @@
 package fu.hao.cosmos_xposed;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -10,14 +11,13 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import java.io.File;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import fu.hao.cosmos_xposed.ml.SelfAdaptiveLearning;
 import fu.hao.cosmos_xposed.ml.WekaUtils;
-import fu.hao.cosmos_xposed.utils.XMLParser;
 import weka.classifiers.meta.FilteredClassifier;
+import weka.classifiers.trees.HoeffdingTree;
 import weka.filters.unsupervised.attribute.StringToWordVector;
 
 public class MainActivity extends AppCompatActivity {
@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        /*
         try {
             FilteredClassifier filteredClassifier = WekaUtils.loadClassifier(getAssets().open("weka/weka.model"));
             Log.w(TAG, filteredClassifier.getRevision());
@@ -52,8 +53,16 @@ public class MainActivity extends AppCompatActivity {
             }
         } catch (Exception exception) {
             exception.printStackTrace();
+        } */
+
+
+        SelfAdaptiveLearning.storeNewInstance(getContentResolver(), "T", "Heblle lsds");
+        try {
+            SelfAdaptiveLearning.doIt(getContentResolver(), (HoeffdingTree) WekaUtils.getWekaModel());
+        } catch (Exception exception) {
+                exception.printStackTrace();
+            }
         }
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
