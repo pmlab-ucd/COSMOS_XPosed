@@ -1,7 +1,9 @@
 package fu.hao.cosmos_xposed.ml;
 
+import android.content.ContentResolver;
 import android.util.Log;
 
+import fu.hao.cosmos_xposed.utils.MyContentProvider;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.FilteredClassifier;
 import weka.classifiers.trees.RandomForest;
@@ -48,6 +50,18 @@ public class WekaUtils {
         LABELS.add("F");
     }
 
+    public static void init(ContentResolver contentResolver) throws Exception {
+        if (stringToWordVector == null) {
+            InputStream inputStream = contentResolver.openInputStream(MyContentProvider.STR2VEC_CONTENT_URI);
+            WekaUtils.setStringToWordVector(WekaUtils.loadStr2WordVec(inputStream));
+        }
+
+        if (wekaModel == null) {
+            InputStream inputStream = contentResolver.openInputStream(MyContentProvider.MODEL_CONTENT_URI);
+            WekaUtils.setWekaModel(WekaUtils.loadClassifier(inputStream));
+        }
+    }
+
     public static void setStringToWordVector(StringToWordVector stringToWordVector) {
         WekaUtils.stringToWordVector = stringToWordVector;
     }
@@ -56,11 +70,11 @@ public class WekaUtils {
         return stringToWordVector;
     }
 
-    public static void setWekaModel(FilteredClassifier filteredClassifier) {
-        WekaUtils.wekaModel = filteredClassifier;
+    public static void setWekaModel(Classifier classifier) {
+        WekaUtils.wekaModel = classifier;
     }
 
-    public static Classifier getWekaModel() {
+    public static Classifier getWekaModel() throws Exception {
         return wekaModel;
     }
 
@@ -127,7 +141,7 @@ public class WekaUtils {
         return filter;
     }
 
-    public static Instances docs2Instances(List<LabelledDoc> docs, List<String> labels) {
+    public static Instances labelledDocs2Instances(List<LabelledDoc> docs, List<String> labels) {
         ArrayList<Attribute> atts = new ArrayList<>();
         ArrayList<String> classVal = new ArrayList<>();
         for (String label : labels) {
@@ -165,7 +179,7 @@ public class WekaUtils {
     public static Instances createArff(List<LabelledDoc> docs, List<String> labels)
             throws FileNotFoundException {
 
-        Instances data = docs2Instances(docs, labels);
+        Instances data = labelledDocs2Instances(docs, labels);
         System.out.println("--------------------------------------------------");
         System.out.println("Create ARFF file:");
         System.out.println(data.toString());
@@ -279,7 +293,7 @@ public class WekaUtils {
         }
     }
 
-    public static Instances docs2Instances(List<String> docs) {
+    public static Instances unlabelledDocs2Instances(List<String> docs) {
         ArrayList<Attribute> atts = new ArrayList<>();
 
         Attribute attribute1 = new Attribute("text", (ArrayList<String>) null);
@@ -307,14 +321,13 @@ public class WekaUtils {
     /**
      * Textual Docs to numerical instances
      *
-     * @param docs
+     * @param instances
      * @param stringToWordVector
      * @return
      */
-    public static Instances docs2Instances(List<String> docs, StringToWordVector stringToWordVector) throws Exception {
-        Instances unlabelledInstances = docs2Instances(docs);
-        System.out.println(unlabelledInstances);
-        return Filter.useFilter(unlabelledInstances, stringToWordVector);
+    public static Instances nominal2Numerical(Instances instances, StringToWordVector
+            stringToWordVector) throws Exception {
+        return Filter.useFilter(instances, stringToWordVector);
     }
 
     /**
@@ -329,7 +342,8 @@ public class WekaUtils {
      */
     public static List<String> predict(List<String> docs, StringToWordVector stringToWordVector,
                                        Classifier classifier, Attribute classAttibute) throws Exception {
-        Instances unlabelledInstances = docs2Instances(docs, stringToWordVector);
+        Instances unlabelledInstances = unlabelledDocs2Instances(docs);
+        unlabelledInstances = nominal2Numerical(unlabelledInstances, stringToWordVector);
         List<String> results = new ArrayList<>();
         for (Instance instance : unlabelledInstances) {
             Log.v(TAG, "Instance: " + instance);
@@ -347,19 +361,18 @@ public class WekaUtils {
         return results;
     }
 
-    public static FilteredClassifier loadClassifier(InputStream fileInputStream) throws Exception {
-        FilteredClassifier filteredClassifier = null;
+    public static Classifier loadClassifier(InputStream fileInputStream) throws Exception {
+        Classifier classifier = null;
 
-        filteredClassifier = (FilteredClassifier)
-                weka.core.SerializationHelper.read(fileInputStream);
+        classifier = (Classifier) weka.core.SerializationHelper.read(fileInputStream);
 
-        return filteredClassifier;
+        return classifier;
     }
 
-    public static FilteredClassifier loadClassifier(File file) throws Exception {
+    public static Classifier loadClassifier(File file) throws Exception {
         FileInputStream fileInputStream = new FileInputStream(file);
         Log.i(TAG, "Trying to load " + file);
-        return (FilteredClassifier) SerializationHelper.read(fileInputStream);
+        return (Classifier) SerializationHelper.read(fileInputStream);
     }
 
     public static StringToWordVector loadStr2WordVec(File file) throws Exception {

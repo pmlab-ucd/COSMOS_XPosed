@@ -1,19 +1,17 @@
 package fu.hao.cosmos_xposed.ml;
 
-import android.app.AndroidAppHelper;
-import android.app.Service;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.IBinder;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -86,7 +84,7 @@ public class SelfAdaptiveLearning {
         } */
     }
 
-    public static Instances exportInstances(ContentResolver contentResolver) {
+    public static Instances exportInstances(ContentResolver contentResolver) throws Exception {
         Cursor cursor = contentResolver.query(NEW_INSTANCE_CONTENT_URI, null, null, null,
                 null);
         List<LabelledDoc> labelledDocs = new ArrayList<>();
@@ -107,19 +105,23 @@ public class SelfAdaptiveLearning {
             // Insert code here to report an error if the cursor is null or the provider threw an exception.
         }
 
-        return WekaUtils.docs2Instances(labelledDocs, WekaUtils.LABELS);
+        Instances instances = WekaUtils.labelledDocs2Instances(labelledDocs, WekaUtils.LABELS);
+        return WekaUtils.nominal2Numerical(instances, WekaUtils.getStringToWordVector());
     }
 
     public static HoeffdingTree incrementalLearning(ContentResolver contentResolver, Instances instances,
                                              HoeffdingTree hoeffdingTree)
         throws Exception {
-        // train NaiveBayes
+        if (hoeffdingTree == null) {
+            throw new RuntimeException("The instance of hoeffdingTree is null!");
+        }
+        // train NaiveBayes or others
         for (Instance instance : instances) {
                 hoeffdingTree.updateClassifier(instance);
         }
 
         weka.core.SerializationHelper.write(contentResolver.openOutputStream(
-                MyContentProvider.NEW_INSTANCE_CONTENT_URI), hoeffdingTree);
+                MyContentProvider.MODEL_CONTENT_URI), hoeffdingTree);
 
         return hoeffdingTree;
     }

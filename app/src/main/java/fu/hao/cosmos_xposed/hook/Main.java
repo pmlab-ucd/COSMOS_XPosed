@@ -28,13 +28,9 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
 import fu.hao.cosmos_xposed.accessibility.LayoutData;
 import fu.hao.cosmos_xposed.accessibility.UIAccessibilityService;
-import fu.hao.cosmos_xposed.ml.SelfAdaptiveLearning;
 import fu.hao.cosmos_xposed.ml.WekaUtils;
 import fu.hao.cosmos_xposed.utils.MyContentProvider;
 import fu.hao.cosmos_xposed.utils.XMLParser;
-import weka.classifiers.meta.FilteredClassifier;
-import weka.classifiers.trees.HoeffdingTree;
-import weka.filters.unsupervised.attribute.StringToWordVector;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
@@ -289,7 +285,7 @@ public class Main implements IXposedHookLoadPackage {
                             Log.e(TAG, xmlData + " no content yet!");
                         } else {
                             do {
-                                xmlData = xmlData + cursor.getString(cursor.getColumnIndex(MyContentProvider.NAME));
+                                xmlData = xmlData + cursor.getString(cursor.getColumnIndex(MyContentProvider.LAYOUT_DATA));
                             } while (cursor.moveToNext());
                         }
 
@@ -362,20 +358,12 @@ public class Main implements IXposedHookLoadPackage {
                     if (texts.length() < 1) {
                         return;
                     }
-                    if (WekaUtils.getWekaModel() == null) {
-                        InputStream inputStream = context.getContentResolver().
-                                openInputStream(MyContentProvider.MODEL_CONTENT_URI);
-                        WekaUtils.setWekaModel(WekaUtils.loadClassifier(inputStream));
-                    }
+
                     //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
                     List<String> unlabelled = new ArrayList<>();
                     unlabelled.add(texts);
 
-                    if (WekaUtils.getStringToWordVector() == null) {
-                        InputStream inputStream = context.getContentResolver().
-                                openInputStream(MyContentProvider.STR2VEC_CONTENT_URI);
-                        WekaUtils.setStringToWordVector(WekaUtils.loadStr2WordVec(inputStream));
-                    }
+                    WekaUtils.init(context.getContentResolver());
                     // MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
                     List<String> res = WekaUtils.predict(unlabelled, WekaUtils.getStringToWordVector(),
                             WekaUtils.getWekaModel(), null);

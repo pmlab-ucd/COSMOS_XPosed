@@ -112,7 +112,7 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
         if (eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
             String eventText = getEventText(eventType);
             ContentValues values = new ContentValues();
-            values.put(MyContentProvider.NAME, eventText);
+            values.put(MyContentProvider.LAYOUT_DATA, eventText);
             getContentResolver().delete(EVENT_TYPE_CONTENT_URI, null, null);
             Uri uri = getContentResolver().insert(EVENT_TYPE_CONTENT_URI, values);
             Log.w(TAG, "Event type " + eventText + " stored: " + uri);
@@ -123,7 +123,7 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
             // Make sure we're running on JELLY_BEAN or higher to use getRid APIs
             if (Build.VERSION.SDK_INT > Build.VERSION_CODES.JELLY_BEAN) {
                 try {
-                    values.put(MyContentProvider.NAME, nodeInfo.getViewIdResourceName());
+                    values.put(MyContentProvider.LAYOUT_DATA, nodeInfo.getViewIdResourceName());
                     Log.w(TAG, "Rid: " + nodeInfo.getViewIdResourceName());
                     uri = getContentResolver().insert(WHO_CONTENT_URI, values);
                     Log.w(TAG, "Who stored: " + uri);
@@ -174,7 +174,7 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
                     Log.i(TAG, "XML: " + strResult);
 
                     ContentValues values = new ContentValues();
-                    values.put(MyContentProvider.NAME, strResult);
+                    values.put(MyContentProvider.LAYOUT_DATA, strResult);
                     getContentResolver().delete(LAYOUT_CONTENT_URI, null, null);
                     Uri uri = getContentResolver().insert(LAYOUT_CONTENT_URI, values);
                     Log.i(TAG, "Layout XML stored: " + uri);
@@ -190,7 +190,7 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
                 Log.i(TAG, "Texts: " + stringBuilder.toString());
 
                 //ContentValues values = new ContentValues();
-                //values.put(MyContentProvider.NAME, stringBuilder.toString());
+                //values.put(MyContentProvider.LAYOUT_DATA, stringBuilder.toString());
 
                 File cacheDir = getCacheDir();
                 File outFile = new File(cacheDir, "layout.data");

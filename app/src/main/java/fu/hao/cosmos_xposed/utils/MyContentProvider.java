@@ -38,43 +38,66 @@ public class MyContentProvider extends ContentProvider {
 
     private static final String NEW_INSTANCE_URL = "content://" + PROVIDER_NAME + "/new_instances";
     public static final Uri NEW_INSTANCE_CONTENT_URI = Uri.parse(NEW_INSTANCE_URL);
+
+
+    public static final String LAYOUT_DATA = "name";
+    private static final int LAYOUTS = 100;
+    private static final int LAYOUTS_ID = 101;
+
     public static final String INSTANCE_DATA = "instanceData";
     public static final String INSTANCE_LABEL = "instanceLabel";
+    private static final int INSTANCES = 200;
+    private static final int INSTANCES_ID = 201;
 
-    public static final String NAME = "name";
-    static final int uriCode = 1;
     static final UriMatcher uriMatcher;
     private static HashMap<String, String> values;
     static {
         uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        uriMatcher.addURI(PROVIDER_NAME, "skholinguacp", uriCode);
-        uriMatcher.addURI(PROVIDER_NAME, "skholinguacp/*", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "skholinguacp", LAYOUTS);
+        uriMatcher.addURI(PROVIDER_NAME, "skholinguacp/*", LAYOUTS);
 
-        uriMatcher.addURI(PROVIDER_NAME, "model", uriCode);
-        uriMatcher.addURI(PROVIDER_NAME, "model/*", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "model", LAYOUTS);
+        uriMatcher.addURI(PROVIDER_NAME, "model/*", LAYOUTS);
 
-        uriMatcher.addURI(PROVIDER_NAME, "filter", uriCode);
-        uriMatcher.addURI(PROVIDER_NAME, "filter/*", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "filter", LAYOUTS);
+        uriMatcher.addURI(PROVIDER_NAME, "filter/*", LAYOUTS);
 
-        uriMatcher.addURI(PROVIDER_NAME, "event_type", uriCode);
-        uriMatcher.addURI(PROVIDER_NAME, "event_type/*", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "event_type", LAYOUTS);
+        uriMatcher.addURI(PROVIDER_NAME, "event_type/*", LAYOUTS);
 
-        uriMatcher.addURI(PROVIDER_NAME, "who", uriCode);
-        uriMatcher.addURI(PROVIDER_NAME, "who/*", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "who", LAYOUTS);
+        uriMatcher.addURI(PROVIDER_NAME, "who/*", LAYOUTS);
 
-        uriMatcher.addURI(PROVIDER_NAME, "layout", uriCode);
-        uriMatcher.addURI(PROVIDER_NAME, "layout/*", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "layout", LAYOUTS);
+        uriMatcher.addURI(PROVIDER_NAME, "layout/*", LAYOUTS_ID);
 
-        uriMatcher.addURI(PROVIDER_NAME, "new_instances", uriCode);
-        uriMatcher.addURI(PROVIDER_NAME, "new_instances/*", uriCode);
+        uriMatcher.addURI(PROVIDER_NAME, "new_instances", INSTANCES);
+        uriMatcher.addURI(PROVIDER_NAME, "new_instances/*", INSTANCES_ID);
     }
+
+    private SQLiteDatabase db;
+    private static final String DATABASE_NAME = "db_contentprovider";
+    private static final String LAYOUT_TABLE = "layout";
+    private static final String INSTANCE_TABLE = "instances";
+    private static final int DATABASE_VERSION = 1;
+    private static final String CREATE_LAYOUT_TABLE = "CREATE TABLE " + LAYOUT_TABLE + "("
+            //+ " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            + LAYOUT_DATA + " TEXT NOT NULL" + ");";
+    private static final String CREATE_INSTANCE_TABLE = "CREATE TABLE " + INSTANCE_TABLE + "("
+            //+ " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            + INSTANCE_DATA + " TEXT NOT NULL,"
+            + INSTANCE_LABEL + " TEXT NOT NULL"
+            + ");";
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
         int count;
         switch (uriMatcher.match(uri)) {
-            case uriCode:
-                count = db.delete(TABLE_NAME, selection, selectionArgs);
+            case LAYOUTS:
+                count = db.delete(LAYOUT_TABLE, selection, selectionArgs);
+                break;
+            case INSTANCES:
+                count = db.delete(INSTANCE_TABLE, selection, selectionArgs);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
@@ -86,9 +109,8 @@ public class MyContentProvider extends ContentProvider {
     @Override
     public String getType(Uri uri) {
         switch (uriMatcher.match(uri)) {
-            case uriCode:
+            case LAYOUTS:
                 return "vnd.android.cursor.dir/cte";
-
             default:
                 throw new IllegalArgumentException("Unsupported URI: " + uri);
         }
@@ -96,13 +118,27 @@ public class MyContentProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {
-        long rowID = db.insert(TABLE_NAME, "", values);
-        if (rowID > 0) {
-            Uri _uri = ContentUris.withAppendedId(LAYOUT_CONTENT_URI, rowID);
-            getContext().getContentResolver().notifyChange(_uri, null);
-            return _uri;
+        Uri _uri = null;
+        switch (uriMatcher.match(uri)) {
+            case LAYOUTS:
+                long ID1 = db.insert(LAYOUT_TABLE, "", values);
+                if (ID1 > 0) {
+                    _uri = ContentUris.withAppendedId(LAYOUT_CONTENT_URI, ID1);
+                    getContext().getContentResolver().notifyChange(_uri, null);
+                    return _uri;
+                }
+                throw new SQLException("Failed to add a record into " + uri);
+            case INSTANCES:
+                long ID2 = db.insert(INSTANCE_TABLE, "", values);
+                if (ID2 > 0) {
+                    _uri = ContentUris.withAppendedId(LAYOUT_CONTENT_URI, ID2);
+                    getContext().getContentResolver().notifyChange(_uri, null);
+                    return _uri;
+                }
+                throw new SQLException("Failed to add a record into " + uri);
+            default:
+                throw new SQLException("Failed to insert row into " + uri);
         }
-        throw new SQLException("Failed to add a record into " + uri);
     }
 
     @Override
@@ -120,18 +156,26 @@ public class MyContentProvider extends ContentProvider {
     public Cursor query(Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        qb.setTables(TABLE_NAME);
 
         switch (uriMatcher.match(uri)) {
-            case uriCode:
+            case LAYOUTS:
+                qb.setTables(LAYOUT_TABLE);
                 qb.setProjectionMap(values);
+                if (sortOrder == null || sortOrder == "") {
+                    sortOrder = LAYOUT_DATA;
+                }
+                break;
+            case INSTANCES:
+                qb.setTables(INSTANCE_TABLE);
+                qb.setProjectionMap(values);
+                if (sortOrder == null || sortOrder == "") {
+                    sortOrder = INSTANCE_DATA;
+                }
                 break;
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
-        if (sortOrder == null || sortOrder == "") {
-            sortOrder = NAME;
-        }
+
         Cursor c = qb.query(db, projection, selection, selectionArgs, null,
                 null, sortOrder);
         c.setNotificationUri(getContext().getContentResolver(), uri);
@@ -143,8 +187,11 @@ public class MyContentProvider extends ContentProvider {
                       String[] selectionArgs) {
         int count = 0;
         switch (uriMatcher.match(uri)) {
-            case uriCode:
-                count = db.update(TABLE_NAME, values, selection, selectionArgs);
+            case LAYOUTS:
+                count = db.update(LAYOUT_TABLE, values, selection, selectionArgs);
+                break;
+            case INSTANCES:
+                count = db.update(INSTANCE_TABLE, values, selection, selectionArgs);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
@@ -153,15 +200,7 @@ public class MyContentProvider extends ContentProvider {
         return count;
     }
 
-    private SQLiteDatabase db;
-    static final String DATABASE_NAME = "db_contentprovider";
-    static final String TABLE_NAME = "names";
-    static final int DATABASE_VERSION = 1;
-    static final String CREATE_DB_TABLE = "CREATE TABLE " + TABLE_NAME + "("
-            //+ " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            + INSTANCE_DATA + " TEXT NOT NULL,"
-            + INSTANCE_LABEL + " TEXT NOT NULL,"
-            + NAME + " TEXT NOT NULL" + ");";
+
 
     private static class DatabaseHelper extends SQLiteOpenHelper {
         DatabaseHelper(Context context) {
@@ -170,12 +209,13 @@ public class MyContentProvider extends ContentProvider {
 
         @Override
         public void onCreate(SQLiteDatabase db) {
-            db.execSQL(CREATE_DB_TABLE);
+            db.execSQL(CREATE_LAYOUT_TABLE);
+            db.execSQL(CREATE_INSTANCE_TABLE);
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
+            db.execSQL("DROP TABLE IF EXISTS " + LAYOUT_TABLE);
             onCreate(db);
         }
     }
@@ -194,6 +234,6 @@ public class MyContentProvider extends ContentProvider {
             privateFile = new File(cacheDir, "");
         }
 
-        return ParcelFileDescriptor.open(privateFile, ParcelFileDescriptor.MODE_READ_ONLY);
+        return ParcelFileDescriptor.open(privateFile, ParcelFileDescriptor.MODE_READ_WRITE);
     }
 }
