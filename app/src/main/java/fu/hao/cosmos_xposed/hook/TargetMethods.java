@@ -37,6 +37,7 @@ public class TargetMethods {
                 "<android.telephony.TelephonyManager: java.util.List getNeighboringCellInfo()>",
                 "<android.telephony.TelephonyManager: android.telephony.CellLocation getCellLocation()>",
                 "<android.telephony.TelephonyManager: void listen(android.telephony.PhoneStateListener,int)>",
+
                 "<android.location.LocationManager: java.util.List getProviders(boolean)>",
                 "<android.location.LocationManager: void requestLocationUpdates(long,float,android.location.Criteria,android.app.PendingIntent)>",
                 "<android.location.LocationManager: void requestLocationUpdates(java.lang.String,long,float,android.app.PendingIntent)>",
@@ -50,13 +51,27 @@ public class TargetMethods {
                 "<android.location.LocationManager: boolean addGpsStatusListener(android.location.GpsStatus$Listener)>",
 
                 "<android.location.Location: double getLatitude()>",
-                "<android.location.Location: double getLongitude()>"
+                "<android.location.Location: double getLongitude()>",
+
+                "<java.net.URL: java.net.URLConnection openConnection()>",
+                "<java.net.URL: void openConnection()>",
+                "<java.net.URLConnection: void connect()>",
+                "<java.net.HttpURLConnection: void connect()>",
+
+                //"<java.lang.Thread: void sleep(long)>",
+                "<java.lang.Thread: void start()",
+                "<java.lang.Thread: void run()>",
+                "<java.lang.Runnable: void run()>"
         }));
         TARGET_METHODS = aHashSet;
 
         aHashSet = new HashSet<>();
         aHashSet.addAll(Arrays.asList(new String[]{
-                "<android.view.View: void performClick()>"
+                "<android.view.View: void performClick()>",
+                "<android.app.Activity: android.view.View findViewById(int)>",
+                "<android.support.v7.app.AppCompatActivity: android.view.View findViewById(int)>",
+                //"<android.app.Activity: void performCreate(android.app.Activity)>",
+                //"<fu.hao.testthread.MainActivity: android.view.View findViewById(int)>"
         }));
         EVENT_METHODS = aHashSet;
     }

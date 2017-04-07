@@ -1,11 +1,18 @@
 package fu.hao.cosmos_xposed.hook;
 
+import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.AndroidAppHelper;
+import android.app.Application;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
+import android.location.LocationManager;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 
 import org.w3c.dom.NodeList;
 
@@ -15,15 +22,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
+import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
 import fu.hao.cosmos_xposed.accessibility.LayoutData;
@@ -31,6 +42,8 @@ import fu.hao.cosmos_xposed.accessibility.UIAccessibilityService;
 import fu.hao.cosmos_xposed.ml.WekaUtils;
 import fu.hao.cosmos_xposed.utils.MyContentProvider;
 import fu.hao.cosmos_xposed.utils.XMLParser;
+import weka.classifiers.evaluation.output.prediction.Null;
+import weka.classifiers.trees.j48.ClassifierSplitModel;
 
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
@@ -193,15 +206,37 @@ public class Main implements IXposedHookLoadPackage {
 
     }
 
+    @Deprecated
+    public static Activity getActivity() throws Exception {
+        Class activityThreadClass = Class.forName("android.app.ActivityThread");
+        Object activityThread = activityThreadClass.getMethod("currentActivityThread").invoke(null);
+        Field activitiesField = activityThreadClass.getDeclaredField("mActivities");
+        activitiesField.setAccessible(true);
+        Map activities = (Map) activitiesField.get(activityThread);
+        for(Object activityRecord:activities.values()){
+            Class activityRecordClass = activityRecord.getClass();
+            Field pausedField = activityRecordClass.getDeclaredField("paused");
+            pausedField.setAccessible(true);
+            if(!pausedField.getBoolean(activityRecord)) {
+                Field activityField = activityRecordClass.getDeclaredField("activity");
+                activityField.setAccessible(true);
+                Activity activity = (Activity) activityField.get(activityRecord);
+                return activity;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * 包加载时候的回调, which is the entry method of the hook system
      */
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         Log.w(TAG, "Package checking: " + lpparam.packageName);
-        // 将包名不是 edu.ucdavis.test的应用剔除掉
-        //if (!lpparam.packageName.equals("edu.ucavis.test")) {
-        //return;
+        // 将包名不是 edu.ucdavis.test的应用剔除掉, for debugging
+        //if (!lpparam.packageName.contains("fu.hao")) {
+           // return;
         //}
 
         if (getPscoutXMethod().isEmpty()) {
@@ -220,10 +255,28 @@ public class Main implements IXposedHookLoadPackage {
 
         Log.v(TAG, "Try to load target methods...");
 
+        Class<?> instrumentation = XposedHelpers.findClass(
+                "android.app.Instrumentation", lpparam.classLoader);
+
+        Method method = instrumentation.getMethod("newActivity",
+                ClassLoader.class, String.class, Intent.class);
+        final ActivityHook iHook = new ActivityHook();
+        XposedBridge.hookMethod(method, iHook);
+
         for (final XMethod xMethod : getEventXMethods()) {
             Log.w(TAG, "Loading " + xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
+            Object[] argus;
+            if (xMethod.getParamTypes() == null || xMethod.getParamTypes().length < 1) {
+                argus = new Object[1];
+            } else {
+                int argPosition = xMethod.getParamTypes().length;
+                argus = new Object[argPosition + 1];
+                for (int i = 0; i < xMethod.getParamTypes().length; i++) {
+                    argus[i] = xMethod.getParamTypes()[i];
+                }
+            }
 
-            XC_MethodHook xc_methodHook = new XC_MethodHook() {
+            argus[argus.length - 1] = new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     Log.w(TAG, "Start Hooking: " + param.method + " with " + param.thisObject +
@@ -241,8 +294,7 @@ public class Main implements IXposedHookLoadPackage {
                     Log.w(TAG, "End hooking method " + param.method);
                 }
             };
-
-            findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), xc_methodHook);
+            findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), argus);
         }
 
         for (final XMethod xMethod : getPscoutXMethod()) {
@@ -265,15 +317,25 @@ public class Main implements IXposedHookLoadPackage {
                     XposedBridge.log("开始劫持了~");
                     Log.w(TAG, "Start Hooking: " + param.method + " with " + param.thisObject +
                             " called by " + lpparam.packageName);
+
                     /*if (!(param.getResult() instanceof Context)) {
                         Log.e(TAG, param.getResult().toString());
                         return;
                     }*/
                     //Context context = (Context) param.getResult();
-                    Context context = AndroidAppHelper.currentApplication();
+                    Application application = AndroidAppHelper.currentApplication();
+                    Activity activity = ActivityHook.getCurrentActivity();
+                    final ViewGroup viewGroup = (ViewGroup) ((ViewGroup) activity
+                            .findViewById(android.R.id.content)).getChildAt(0);
+                    for(int i = 0; i < viewGroup.getChildCount(); i++) {
+                        Log.w(TAG, viewGroup.getChildAt(i).getClass().getName());
+                    }
+
+                    //ActivityManager am = (ActivityManager) application.getSystemService(Context.ACTIVITY_SERVICE);
+                    //ComponentName cn = am.getRunningTasks(1).get(0).topActivity;
                     String texts = "";
                     if (UIAccessibilityService.toXml) {
-                        ContentResolver cr = context.getContentResolver();
+                        ContentResolver cr = application.getContentResolver();
                         Cursor cursor = cr.query(LAYOUT_CONTENT_URI, null, null, null, null);
                         if (cursor == null) {
                             Log.e(TAG, "Cannot get the cursor!");
@@ -315,7 +377,7 @@ public class Main implements IXposedHookLoadPackage {
 
                         texts = stringBuilder.toString();
                     } else {
-                        InputStream inputStream = context.getContentResolver().openInputStream(
+                        InputStream inputStream = application.getContentResolver().openInputStream(
                                 MyContentProvider.LAYOUT_DATA_CONTENT_URI);
                         ObjectInputStream is = new ObjectInputStream(inputStream);
                         LayoutData layoutData = (LayoutData) is.readObject();
@@ -363,7 +425,7 @@ public class Main implements IXposedHookLoadPackage {
                     List<String> unlabelled = new ArrayList<>();
                     unlabelled.add(texts);
 
-                    WekaUtils.init(context.getContentResolver());
+                    WekaUtils.init(application.getContentResolver());
                     // MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
                     List<String> res = WekaUtils.predict(unlabelled, WekaUtils.getStringToWordVector(),
                             WekaUtils.getWekaModel(), null);
