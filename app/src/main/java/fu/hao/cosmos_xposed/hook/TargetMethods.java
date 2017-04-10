@@ -54,22 +54,20 @@ public class TargetMethods {
                 "<android.location.Location: double getLongitude()>",
 
                 "<java.net.URL: java.net.URLConnection openConnection()>",
-                "<java.net.URL: void openConnection()>",
+                "<java.net.URL: java.net.HttpURLConnection openConnection()>",
                 "<java.net.URLConnection: void connect()>",
                 "<java.net.HttpURLConnection: void connect()>",
 
                 //"<java.lang.Thread: void sleep(long)>",
-                "<java.lang.Thread: void start()",
-                "<java.lang.Thread: void run()>",
-                "<java.lang.Runnable: void run()>"
+                "<java.lang.Thread: void start()>"
         }));
         TARGET_METHODS = aHashSet;
 
         aHashSet = new HashSet<>();
         aHashSet.addAll(Arrays.asList(new String[]{
                 "<android.view.View: void performClick()>",
-                "<android.app.Activity: android.view.View findViewById(int)>",
-                "<android.support.v7.app.AppCompatActivity: android.view.View findViewById(int)>",
+                //"<android.app.Activity: android.view.View findViewById(int)>",
+                //"<android.support.v7.app.AppCompatActivity: android.view.View findViewById(int)>",
                 //"<android.app.Activity: void performCreate(android.app.Activity)>",
                 //"<fu.hao.testthread.MainActivity: android.view.View findViewById(int)>"
         }));

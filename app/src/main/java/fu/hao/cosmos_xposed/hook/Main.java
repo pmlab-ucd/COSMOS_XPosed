@@ -4,19 +4,24 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AndroidAppHelper;
 import android.app.Application;
+import android.app.Instrumentation;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.InstrumentationInfo;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.location.LocationManager;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import org.w3c.dom.NodeList;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,6 +30,7 @@ import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +51,7 @@ import fu.hao.cosmos_xposed.utils.XMLParser;
 import weka.classifiers.evaluation.output.prediction.Null;
 import weka.classifiers.trees.j48.ClassifierSplitModel;
 
+import static de.robv.android.xposed.XposedHelpers.findAndHookConstructor;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
 
@@ -228,16 +235,21 @@ public class Main implements IXposedHookLoadPackage {
         return null;
     }
 
+
     /**
      * 包加载时候的回调, which is the entry method of the hook system
      */
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        Log.w(TAG, "Package checking: " + lpparam.packageName);
+        Log.v(TAG, "Package checking: " + lpparam.packageName);
         // 将包名不是 edu.ucdavis.test的应用剔除掉, for debugging
-        //if (!lpparam.packageName.contains("fu.hao")) {
-           // return;
-        //}
+        if (!(lpparam.packageName.contains("fu.hao") || lpparam.packageName.contains("jp.snowlife01")
+        || lpparam.packageName.contains("net.sourceforge") || lpparam.packageName.contains("com.jessdev")
+                || lpparam.packageName.contains("com.globalegrow"))) {
+            return;
+        }
+
+        Log.w(TAG, "Package checking: " + lpparam.packageName);
 
         if (getPscoutXMethod().isEmpty()) {
             Log.w(TAG, "Try to read TARGET_METHODS...");
@@ -263,6 +275,10 @@ public class Main implements IXposedHookLoadPackage {
         final ActivityHook iHook = new ActivityHook();
         XposedBridge.hookMethod(method, iHook);
 
+        //findAndHookConstructor(Thread.class, Runnable.class, new ThreadHook(true));
+        //findAndHookConstructor(Thread.class, new ThreadHook(false));
+        //findAndHookMethod("fu.hao.testthread.MainActivity$ConnectionThread2", lpparam.classLoader, "run", new ThreadHook(false));
+
         for (final XMethod xMethod : getEventXMethods()) {
             Log.w(TAG, "Loading " + xMethod.getMethodName() + " @ " + xMethod.getDeclaredClass());
             Object[] argus;
@@ -285,6 +301,10 @@ public class Main implements IXposedHookLoadPackage {
 
                     if (param.thisObject instanceof View) {
                         sensitiveView = (View) param.thisObject;
+                        if (sensitiveView instanceof Button) {
+                            Button button = (Button) sensitiveView;
+                            ActivityHook.show(ActivityHook.getCurrentActivity(), button);
+                        }
                     }
                 }
 
@@ -292,6 +312,19 @@ public class Main implements IXposedHookLoadPackage {
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     XposedBridge.log("劫持结束了~" + lpparam.packageName);
                     Log.w(TAG, "End hooking method " + param.method);
+
+                    Activity activity = ActivityHook.getCurrentActivity();
+                    if (activity != null) {
+                        try {
+                            final ViewGroup viewGroup = (ViewGroup) ((ViewGroup) activity
+                                    .findViewById(android.R.id.content)).getChildAt(0);
+                            ActivityHook.checkView(viewGroup);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        Log.w(TAG, "Current Activity is missing!");
+                    }
                 }
             };
             findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), argus);
@@ -325,10 +358,39 @@ public class Main implements IXposedHookLoadPackage {
                     //Context context = (Context) param.getResult();
                     Application application = AndroidAppHelper.currentApplication();
                     Activity activity = ActivityHook.getCurrentActivity();
-                    final ViewGroup viewGroup = (ViewGroup) ((ViewGroup) activity
-                            .findViewById(android.R.id.content)).getChildAt(0);
-                    for(int i = 0; i < viewGroup.getChildCount(); i++) {
-                        Log.w(TAG, viewGroup.getChildAt(i).getClass().getName());
+                    if (activity != null) {
+                        final ViewGroup viewGroup = (ViewGroup) ((ViewGroup) activity
+                                .findViewById(android.R.id.content)).getChildAt(0);
+                        for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                            Log.w(TAG, viewGroup.getChildAt(i).getClass().getName());
+                        }
+                    } else {
+                        Log.w(TAG, "Current Activity is missing!");
+                    }
+
+                    for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
+                        Log.w(TAG, "stackTraceElem: " + stackTraceElement.getMethodName() + ", "
+                                + stackTraceElement.getClassName() + ", " + stackTraceElement.getFileName()
+                                + ", " + stackTraceElement.getLineNumber());
+
+                        // Locate entry point
+                        if (eventTriggered != null && stackTraceElement.getMethodName().contains(eventTriggered.getName())) {
+                            Log.w(TAG, "" + sensitiveView.getResources().getResourceName(sensitiveView.getId()));
+
+                        }
+                        //load the class to get the information
+                        /*
+                        try {
+                            Class<?> c = Class.forName(stackTraceElement.getClassName());
+                            Method[] methods = c.getMethods();
+                            Class<?>[] parameters = methods[0].getParameterTypes();
+
+                            for (Class<?> paramter : parameters) {
+                                Log.w(TAG, paramter.getName());
+                            }
+                        } catch (Exception e) {
+                            Log.w(TAG, e.getMessage());
+                        }*/
                     }
 
                     //ActivityManager am = (ActivityManager) application.getSystemService(Context.ACTIVITY_SERVICE);
@@ -392,28 +454,6 @@ public class Main implements IXposedHookLoadPackage {
                             stringBuilder.append(text + ";");
                         }
                         texts = stringBuilder.toString();
-                    }
-
-                    for (StackTraceElement stackTraceElement : Thread.currentThread().getStackTrace()) {
-                        Log.v(TAG, "stackTraceElem: " + stackTraceElement.getMethodName() + ", "
-                                + stackTraceElement.getClassName());
-                        // Locate entry point
-                        if (eventTriggered != null && stackTraceElement.getMethodName().contains(eventTriggered.getName())) {
-                            Log.w(TAG, "" + sensitiveView.getResources().getResourceName(sensitiveView.getId()));
-                        }
-                        //load the class to get the information
-                        /*
-                        try {
-                            Class<?> c = Class.forName(stackTraceElement.getClassName());
-                            Method[] methods = c.getMethods();
-                            Class<?>[] parameters = methods[0].getParameterTypes();
-
-                            for (Class<?> paramter : parameters) {
-                                Log.w(TAG, paramter.getName());
-                            }
-                        } catch (Exception e) {
-                            Log.w(TAG, e.getMessage());
-                        }*/
                     }
 
                     Log.w(TAG, "Texts: " + texts);
