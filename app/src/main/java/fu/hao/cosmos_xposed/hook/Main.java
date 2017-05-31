@@ -244,7 +244,7 @@ public class Main implements IXposedHookLoadPackage {
         Log.v(TAG, "Package checking: " + lpparam.packageName);
         // 将包名不是 edu.ucdavis.test的应用剔除掉, for debugging
         if (!(lpparam.packageName.contains("fu.hao") || lpparam.packageName.contains("jp.snowlife01")
-        || lpparam.packageName.contains("net.sourceforge") || lpparam.packageName.contains("com.jessdev")
+                || lpparam.packageName.contains("net.sourceforge") || lpparam.packageName.contains("com.jessdev")
                 || lpparam.packageName.contains("com.globalegrow"))) {
             return;
         }

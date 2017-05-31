@@ -53,6 +53,14 @@ public class TargetMethods {
                 "<android.location.Location: double getLatitude()>",
                 "<android.location.Location: double getLongitude()>",
 
+                "<android.media.MediaRecorder: void setVideoSource(int)>",
+                "<android.hardware.Camera: android.hardware.Camera open()>",
+
+                "<android.speech.SpeechRecognizer: void setRecognitionListener(android.speech.RecognitionListener)>",
+                "<android.speech.SpeechRecognizer: void startListening(android.content.Intent)>",
+                "<android.media.MediaRecorder: void setAudioSource(int)>",
+                "<android.media.AudioRecord: void startRecording()>",
+
                 "<java.net.URL: java.net.URLConnection openConnection()>",
                 "<java.net.URL: java.net.HttpURLConnection openConnection()>",
                 "<java.net.URLConnection: void connect()>",

@@ -125,8 +125,12 @@ public class UIAccessibilityService extends android.accessibilityservice.Accessi
                 try {
                     values.put(MyContentProvider.LAYOUT_DATA, nodeInfo.getViewIdResourceName());
                     Log.w(TAG, "Rid: " + nodeInfo.getViewIdResourceName());
-                    uri = getContentResolver().insert(WHO_CONTENT_URI, values);
-                    Log.w(TAG, "Who stored: " + uri);
+                    if (nodeInfo.getViewIdResourceName() == null || nodeInfo.getViewIdResourceName().isEmpty()) {
+                        Log.w(TAG, "Empty rid!");
+                    } else {
+                        uri = getContentResolver().insert(WHO_CONTENT_URI, values);
+                        Log.w(TAG, "Who stored: " + uri);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

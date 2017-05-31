@@ -95,8 +95,11 @@ public class ActivityHook extends XC_MethodHook {
         mTipView.setLayoutParams(new RelativeLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
         mTipView.setOrientation(LinearLayout.VERTICAL);
 
-        String message = "The highlighted view (" + view.getResources().getResourceName(view.getId()) +
-                ") is trying to (ACCESS_LOCATION) after (performClick)!";
+
+        //String message = "The highlighted view (" + view.getResources().getResourceName(view.getId()) +
+          //      ") is trying to (ACCESS_LOCATION) after (performClick)!";
+
+        String message = "The highlighted widget is accessing your location information after clicking. Will you allow or deny?";
         int textSize = 21;
 
         int padding = EasyGuide.dip2px(activity, 5);
