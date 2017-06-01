@@ -18,6 +18,9 @@ public class MainService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        /*
+            Prediction
+         */
         Log.w(TAG, "Main Service Start!");
         if(intent != null) {
             //int position = intent.getIntExtra("position", 0);
