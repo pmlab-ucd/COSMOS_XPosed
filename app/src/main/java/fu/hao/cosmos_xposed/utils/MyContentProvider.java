@@ -39,6 +39,8 @@ public class MyContentProvider extends ContentProvider {
     private static final String NEW_INSTANCE_URL = "content://" + PROVIDER_NAME + "/new_instances";
     public static final Uri NEW_INSTANCE_CONTENT_URI = Uri.parse(NEW_INSTANCE_URL);
 
+    private static final String PREDICTION_RES = "content://" + PROVIDER_NAME + "/prediction_res";
+    public static final Uri PREDICTION_RES_URI = Uri.parse(PREDICTION_RES);
 
     public static final String LAYOUT_DATA = "name";
     private static final int LAYOUTS = 100;
@@ -49,36 +51,31 @@ public class MyContentProvider extends ContentProvider {
     private static final int INSTANCES = 200;
     private static final int INSTANCES_ID = 201;
 
+    public static final String PREDICTIONS_INDEX = "predictionIndex";
+    public static final String PREDICTIONS_DATA = "predictionData";
+    private static final int PREDICTIONS = 300;
+    private static final int PREDICTIONS_ID = 301;
+
     static final UriMatcher uriMatcher;
     private static HashMap<String, String> values;
     static {
         uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        uriMatcher.addURI(PROVIDER_NAME, "skholinguacp", LAYOUTS);
-        uriMatcher.addURI(PROVIDER_NAME, "skholinguacp/*", LAYOUTS);
-
-        uriMatcher.addURI(PROVIDER_NAME, "model", LAYOUTS);
-        uriMatcher.addURI(PROVIDER_NAME, "model/*", LAYOUTS);
-
-        uriMatcher.addURI(PROVIDER_NAME, "filter", LAYOUTS);
-        uriMatcher.addURI(PROVIDER_NAME, "filter/*", LAYOUTS);
-
-        uriMatcher.addURI(PROVIDER_NAME, "event_type", LAYOUTS);
-        uriMatcher.addURI(PROVIDER_NAME, "event_type/*", LAYOUTS);
-
-        uriMatcher.addURI(PROVIDER_NAME, "who", LAYOUTS);
-        uriMatcher.addURI(PROVIDER_NAME, "who/*", LAYOUTS);
 
         uriMatcher.addURI(PROVIDER_NAME, "layout", LAYOUTS);
         uriMatcher.addURI(PROVIDER_NAME, "layout/*", LAYOUTS_ID);
 
         uriMatcher.addURI(PROVIDER_NAME, "new_instances", INSTANCES);
         uriMatcher.addURI(PROVIDER_NAME, "new_instances/*", INSTANCES_ID);
+
+        uriMatcher.addURI(PROVIDER_NAME, "prediction_res", PREDICTIONS);
+        uriMatcher.addURI(PROVIDER_NAME, "prediction_res/*", PREDICTIONS_ID);
     }
 
     private SQLiteDatabase db;
     private static final String DATABASE_NAME = "db_contentprovider";
     private static final String LAYOUT_TABLE = "layout";
     private static final String INSTANCE_TABLE = "instances";
+    private static final String PREDICTIONS_TABLE = "predictions";
     private static final int DATABASE_VERSION = 1;
     private static final String CREATE_LAYOUT_TABLE = "CREATE TABLE " + LAYOUT_TABLE + "("
             //+ " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -87,6 +84,12 @@ public class MyContentProvider extends ContentProvider {
             //+ " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
             + INSTANCE_DATA + " TEXT NOT NULL,"
             + INSTANCE_LABEL + " TEXT NOT NULL"
+            + ");";
+
+    private static final String CREATE_PREDICTIONS_TABLE = "CREATE TABLE " + PREDICTIONS_TABLE + "("
+            //+ " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            + PREDICTIONS_INDEX + " TEXT NOT NULL,"
+            + PREDICTIONS_DATA + " TEXT NOT NULL"
             + ");";
 
     @Override
@@ -98,6 +101,9 @@ public class MyContentProvider extends ContentProvider {
                 break;
             case INSTANCES:
                 count = db.delete(INSTANCE_TABLE, selection, selectionArgs);
+                break;
+            case PREDICTIONS:
+                count = db.delete(PREDICTIONS_TABLE, selection, selectionArgs);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
@@ -131,7 +137,15 @@ public class MyContentProvider extends ContentProvider {
             case INSTANCES:
                 long ID2 = db.insert(INSTANCE_TABLE, "", values);
                 if (ID2 > 0) {
-                    _uri = ContentUris.withAppendedId(LAYOUT_CONTENT_URI, ID2);
+                    _uri = ContentUris.withAppendedId(NEW_INSTANCE_CONTENT_URI, ID2);
+                    getContext().getContentResolver().notifyChange(_uri, null);
+                    return _uri;
+                }
+                throw new SQLException("Failed to add a record into " + uri);
+            case PREDICTIONS:
+                long ID3 = db.insert(PREDICTIONS_TABLE, "", values);
+                if (ID3 > 0) {
+                    _uri = ContentUris.withAppendedId(PREDICTION_RES_URI, ID3);
                     getContext().getContentResolver().notifyChange(_uri, null);
                     return _uri;
                 }
@@ -172,6 +186,13 @@ public class MyContentProvider extends ContentProvider {
                     sortOrder = INSTANCE_DATA;
                 }
                 break;
+            case PREDICTIONS:
+                qb.setTables(PREDICTIONS_TABLE);
+                qb.setProjectionMap(values);
+                if (sortOrder == null || sortOrder == "") {
+                    sortOrder = PREDICTIONS_INDEX;
+                }
+                break;
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
@@ -193,6 +214,9 @@ public class MyContentProvider extends ContentProvider {
             case INSTANCES:
                 count = db.update(INSTANCE_TABLE, values, selection, selectionArgs);
                 break;
+            case PREDICTIONS:
+                count = db.update(PREDICTIONS_TABLE, values, selection, selectionArgs);
+                break;
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
         }
@@ -211,11 +235,14 @@ public class MyContentProvider extends ContentProvider {
         public void onCreate(SQLiteDatabase db) {
             db.execSQL(CREATE_LAYOUT_TABLE);
             db.execSQL(CREATE_INSTANCE_TABLE);
+            db.execSQL(CREATE_PREDICTIONS_TABLE);
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
             db.execSQL("DROP TABLE IF EXISTS " + LAYOUT_TABLE);
+            db.execSQL("DROP TABLE IF EXISTS " + INSTANCE_TABLE);
+            db.execSQL("DROP TABLE IF EXISTS " + PREDICTIONS_TABLE);
             onCreate(db);
         }
     }

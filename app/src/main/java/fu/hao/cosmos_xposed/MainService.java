@@ -1,16 +1,22 @@
 package fu.hao.cosmos_xposed;
 
 import android.app.Service;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.IBinder;
 import android.util.Log;
 
 import java.util.List;
 
 import fu.hao.cosmos_xposed.ml.WekaUtils;
+import fu.hao.cosmos_xposed.utils.MyContentProvider;
+
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.PREDICTION_RES_URI;
 
 public class MainService extends Service {
-    final String TAG = MainService.class.getName();
+    public final String TAG = MainService.class.getName();
 
     public MainService() throws Exception {
         Log.w(TAG, "MainServiceStarted");
@@ -33,6 +39,13 @@ public class MainService extends Service {
                     String res = WekaUtils.predict(texts, WekaUtils.getStringToWordVector(),
                             WekaUtils.getWekaModel(), null);
                     Log.w(TAG, "Predicted as " + res);
+
+                    ContentValues values = new ContentValues();
+                    values.put(MyContentProvider.PREDICTIONS_INDEX, texts);
+                    values.put(MyContentProvider.PREDICTIONS_DATA, res);
+                    getContentResolver().delete(PREDICTION_RES_URI, null, null);
+                    Uri uri = getContentResolver().insert(PREDICTION_RES_URI, values);
+                    Log.i(TAG, "Prediction res stored: " + uri);
                 }
             } catch (Exception e) {
                 if (e.getMessage() != null) {

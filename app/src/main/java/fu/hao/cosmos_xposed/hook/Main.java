@@ -56,6 +56,7 @@ import static de.robv.android.xposed.XposedHelpers.findAndHookConstructor;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static fu.hao.cosmos_xposed.hook.Utils.readMethods;
 import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.PREDICTION_RES_URI;
 
 /**
  * Description:
@@ -295,10 +296,12 @@ public class Main implements IXposedHookLoadPackage {
                         ObjectInputStream is = new ObjectInputStream(inputStream);
                         LayoutData layoutData = (LayoutData) is.readObject();
                         is.close();
+                        //Log.w(TAG, "501");
 
                         if (!layoutData.getPkg().equals(lpparam.packageName)) {
                             return;
                         }
+                        //Log.w(TAG, "511");
 
                         StringBuilder stringBuilder = new StringBuilder();
                         for (String text : layoutData.getTexts()) {
@@ -317,6 +320,40 @@ public class Main implements IXposedHookLoadPackage {
                     intent.setComponent((new ComponentName("fu.hao.cosmos_xposed", "fu.hao.cosmos_xposed.MainService")));
                     intent.putExtra("texts", texts);
                     application.startService(intent);
+                    Log.w(TAG, "Staring MainService");
+
+                    String res = "";
+
+                    ContentResolver cr = application.getContentResolver();
+                    Cursor cursor = cr.query(PREDICTION_RES_URI, null, null, null, null);
+                    if (cursor == null) {
+                        Log.e(TAG, "Cannot get the cursor!");
+                        return;
+                    }
+
+                    String index = "";
+
+                    for (int i = 0; i < 10; i++) {
+                        if (!index.isEmpty()) {
+                            break;
+                        }
+                        cursor = cr.query(PREDICTION_RES_URI, null, null, null, null);
+                        if (cursor == null) {
+                            Log.e(TAG, "Cannot get the cursor!");
+                            return;
+                        }
+                        if (!cursor.moveToFirst()) {
+                            Log.e(TAG, " no content yet!");
+                        } else {
+                            do {
+                                index = index + cursor.getString(cursor.getColumnIndex(MyContentProvider.PREDICTIONS_INDEX));
+                                res = res + cursor.getString(cursor.getColumnIndex(MyContentProvider.PREDICTIONS_DATA));
+                            } while (cursor.moveToNext());
+                        }
+                        Log.w(TAG, "Index: " + index);
+                        Log.w(TAG, "Res: " + res);
+                        Thread.sleep(20);
+                    }
                 }
 
                 @Override
