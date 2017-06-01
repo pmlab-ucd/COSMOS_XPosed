@@ -43,6 +43,7 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import fu.hao.cosmos_xposed.MainApplication;
+import fu.hao.cosmos_xposed.MainService;
 import fu.hao.cosmos_xposed.accessibility.LayoutData;
 import fu.hao.cosmos_xposed.accessibility.UIAccessibilityService;
 import fu.hao.cosmos_xposed.ml.WekaUtils;
@@ -68,6 +69,7 @@ public class Main implements IXposedHookLoadPackage {
     private static Set<XMethod> EVENT_XMETHODS;
     private View sensitiveView = null;
     private Member eventTriggered = null; // The most recent event.
+    private Application application = null;
 
     static {
         PscoutXMethod = new HashSet<>();
@@ -245,7 +247,7 @@ public class Main implements IXposedHookLoadPackage {
         // 将包名不是 edu.ucdavis.test的应用剔除掉, for debugging
         if (!(lpparam.packageName.contains("fu.hao") || lpparam.packageName.contains("jp.snowlife01")
                 || lpparam.packageName.contains("net.sourceforge") || lpparam.packageName.contains("com.jessdev")
-                || lpparam.packageName.contains("com.globalegrow"))) {
+                || lpparam.packageName.contains("com.yahoo"))) {
             return;
         }
 
@@ -462,16 +464,10 @@ public class Main implements IXposedHookLoadPackage {
                     }
 
                     //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
-                    List<String> unlabelled = new ArrayList<>();
-                    unlabelled.add(texts);
-
-                    WekaUtils.init(application.getContentResolver());
-                    // MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
-                    List<String> res = WekaUtils.predict(unlabelled, WekaUtils.getStringToWordVector(),
-                            WekaUtils.getWekaModel(), null);
-                    for (String subres : res) {
-                        Log.w(TAG, "Predicted as " + subres);
-                    }
+                    Intent intent = new Intent();
+                    intent.setComponent((new ComponentName("fu.hao.cosmos_xposed", "fu.hao.cosmos_xposed.MainService")));
+                    intent.putExtra("texts", texts);
+                    application.startService(intent);
                 }
 
                 @Override
