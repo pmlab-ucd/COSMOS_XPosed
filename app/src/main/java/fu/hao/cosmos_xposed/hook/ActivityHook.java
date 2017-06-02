@@ -86,60 +86,62 @@ public class ActivityHook extends XC_MethodHook {
     // 须在View绘制完成之后调用，否则可能无法准确显示
 // offsetX:正数代表从屏幕左侧往右偏移距离，负数表示从屏幕右侧往左偏移距离。Constant.CENTER 表示居中
 // offsetY:同理。正数由上到下，负数由下到上。Constant.CENTER 表示居中
-    public static void show(Activity activity, View view) {
-        if (easyGuide != null && easyGuide.isShowing())
-            easyGuide.dismiss();
+    public static void show(Activity activity, View view, String pkg, String event) {
 
-        LinearLayout mTipView = new LinearLayout(activity);
-        mTipView.setGravity(Gravity.CENTER_HORIZONTAL);
-        mTipView.setLayoutParams(new RelativeLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
-        mTipView.setOrientation(LinearLayout.VERTICAL);
+        if (view != null) {
+            if (easyGuide != null && easyGuide.isShowing())
+                easyGuide.dismiss();
+
+            LinearLayout mTipView = new LinearLayout(activity);
+            mTipView.setGravity(Gravity.CENTER_HORIZONTAL);
+            mTipView.setLayoutParams(new RelativeLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
+            mTipView.setOrientation(LinearLayout.VERTICAL);
 
 
-        //String message = "The highlighted view (" + view.getResources().getResourceName(view.getId()) +
-          //      ") is trying to (ACCESS_LOCATION) after (performClick)!";
+            //String message = "The highlighted view (" + view.getResources().getResourceName(view.getId()) +
+            //      ") is trying to (ACCESS_LOCATION) after (performClick)!";
 
-        String message = "The highlighted widget is accessing your location information after clicking. Will you allow or deny?";
-        int textSize = 21;
+            String message = "The highlighted widget is accessing your location information after clicking. Will you allow or deny?";
+            int textSize = 21;
 
-        int padding = EasyGuide.dip2px(activity, 5);
-        TextView tvMsg = new TextView(activity);
-        tvMsg.setLayoutParams(new ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
-        tvMsg.setPadding(padding, padding, padding, padding);
-        tvMsg.setGravity(Gravity.CENTER);
-        tvMsg.setText(message);
-        tvMsg.setTextColor(Color.WHITE);
-        tvMsg.setTextSize(textSize == -1 ? 12 : textSize);
+            int padding = EasyGuide.dip2px(activity, 5);
+            TextView tvMsg = new TextView(activity);
+            tvMsg.setLayoutParams(new ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
+            tvMsg.setPadding(padding, padding, padding, padding);
+            tvMsg.setGravity(Gravity.CENTER);
+            tvMsg.setText(message);
+            tvMsg.setTextColor(Color.WHITE);
+            tvMsg.setTextSize(textSize == -1 ? 12 : textSize);
 
-        mTipView.addView(tvMsg);
+            mTipView.addView(tvMsg);
 
-        int[] loc = new int[2];
-        view.getLocationOnScreen(loc);
+            int[] loc = new int[2];
+            view.getLocationOnScreen(loc);
 
-        //View tipsView = createTipsView(activity);
+            //View tipsView = createTipsView(activity);
 
-        View allowView = createTipsView(activity, "Allow", Color.GREEN, 18);
-        mTipView.addView(allowView);
-        int[] allowViewLoc = new int[2];
-        allowView.getLocationOnScreen(allowViewLoc);
-        View denyView = createTipsView(activity, "Deny", Color.RED, 18);
-        mTipView.addView(denyView);
+            View allowView = createTipsView(activity, "Allow", Color.GREEN, 18);
+            mTipView.addView(allowView);
+            int[] allowViewLoc = new int[2];
+            allowView.getLocationOnScreen(allowViewLoc);
+            View denyView = createTipsView(activity, "Deny", Color.RED, 18);
+            mTipView.addView(denyView);
 
-        easyGuide = new EasyGuide.Builder(activity)
-                // 增加View高亮区域，可同时显示多个
-                .addHightArea(view, HShape.CIRCLE)
-                // 添加箭头指示
-                //.addIndicator(R.drawable.right_top, loc[0], loc[1] + view.getHeight())
-                // 复杂的提示布局，建议通过此方法，较容易控制
-                //.addView(createTipsView(activity), 0, loc[1] + view.getHeight(),
-                        //new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                         //       ViewGroup.LayoutParams.WRAP_CONTENT))
-                // 设置提示信息，默认居中。若需调整，可采用addView形式
-                .addView(mTipView, Constants.CENTER, Constants.CENTER, new RelativeLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-                //.addView(allowView, Constants.CENTER, Constants.CENTER + view.getHeight())
-                //.addView(denyView, allowViewLoc[0], allowViewLoc[1] + allowView.getHeight())
-                //.addMessage(message, 21)
-                // 设置确定按钮，默认居中显示在Message下面
+            easyGuide = new EasyGuide.Builder(activity)
+                    // 增加View高亮区域，可同时显示多个
+                    .addHightArea(view, HShape.CIRCLE)
+                    // 添加箭头指示
+                    //.addIndicator(R.drawable.right_top, loc[0], loc[1] + view.getHeight())
+                    // 复杂的提示布局，建议通过此方法，较容易控制
+                    //.addView(createTipsView(activity), 0, loc[1] + view.getHeight(),
+                    //new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    //       ViewGroup.LayoutParams.WRAP_CONTENT))
+                    // 设置提示信息，默认居中。若需调整，可采用addView形式
+                    .addView(mTipView, Constants.CENTER, Constants.CENTER, new RelativeLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+                    //.addView(allowView, Constants.CENTER, Constants.CENTER + view.getHeight())
+                    //.addView(denyView, allowViewLoc[0], allowViewLoc[1] + allowView.getHeight())
+                    //.addMessage(message, 21)
+                    // 设置确定按钮，默认居中显示在Message下面
                 /*.setPositiveButton("Allow", 20, new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -147,13 +149,83 @@ public class ActivityHook extends XC_MethodHook {
                         Log.i("TAG", "dismiss");
                     }
                 })*/
-                // 是否点击任意区域消失，默认true
-                .dismissAnyWhere(true)
-                // 若点击作用在高亮区域，是否执行高亮区域的点击事件，默认false
-                .performViewClick(true)
-                .build();
+                    // 是否点击任意区域消失，默认true
+                    .dismissAnyWhere(true)
+                    // 若点击作用在高亮区域，是否执行高亮区域的点击事件，默认false
+                    .performViewClick(true)
+                    .build();
 
-        easyGuide.show();
+            easyGuide.show();
+        } else {
+            if (easyGuide != null && easyGuide.isShowing())
+                easyGuide.dismiss();
+
+            LinearLayout mTipView = new LinearLayout(activity);
+            mTipView.setGravity(Gravity.CENTER_HORIZONTAL);
+            mTipView.setLayoutParams(new RelativeLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
+            mTipView.setOrientation(LinearLayout.VERTICAL);
+
+
+            //String message = "The highlighted view (" + view.getResources().getResourceName(view.getId()) +
+            //      ") is trying to (ACCESS_LOCATION) after (performClick)!";
+
+            String message = pkg + " is accessing your location information after" + event + ". Will you allow or deny?";
+            int textSize = 21;
+
+            int padding = EasyGuide.dip2px(activity, 5);
+            TextView tvMsg = new TextView(activity);
+            tvMsg.setLayoutParams(new ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
+            tvMsg.setPadding(padding, padding, padding, padding);
+            tvMsg.setGravity(Gravity.CENTER);
+            tvMsg.setText(message);
+            tvMsg.setTextColor(Color.WHITE);
+            tvMsg.setTextSize(textSize == -1 ? 12 : textSize);
+
+            mTipView.addView(tvMsg);
+
+            int[] loc = new int[2];
+            //view.getLocationOnScreen(loc);
+
+            //View tipsView = createTipsView(activity);
+
+            View allowView = createTipsView(activity, "Allow", Color.GREEN, 18);
+            mTipView.addView(allowView);
+            int[] allowViewLoc = new int[2];
+            allowView.getLocationOnScreen(allowViewLoc);
+            View denyView = createTipsView(activity, "Deny", Color.RED, 18);
+            //denyView.setOnClickListener();
+            mTipView.addView(denyView);
+
+            easyGuide = new EasyGuide.Builder(activity)
+                    // 增加View高亮区域，可同时显示多个
+                    //.addHightArea(view, HShape.CIRCLE)
+                    // 添加箭头指示
+                    //.addIndicator(R.drawable.right_top, loc[0], loc[1] + view.getHeight())
+                    // 复杂的提示布局，建议通过此方法，较容易控制
+                    //.addView(createTipsView(activity), 0, loc[1] + view.getHeight(),
+                    //new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    //       ViewGroup.LayoutParams.WRAP_CONTENT))
+                    // 设置提示信息，默认居中。若需调整，可采用addView形式
+                    .addView(mTipView, Constants.CENTER, Constants.CENTER, new RelativeLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+                    //.addView(allowView, Constants.CENTER, Constants.CENTER + view.getHeight())
+                    //.addView(denyView, allowViewLoc[0], allowViewLoc[1] + allowView.getHeight())
+                    //.addMessage(message, 21)
+                    // 设置确定按钮，默认居中显示在Message下面
+                /*.setPositiveButton("Allow", 20, new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        easyGuide.dismiss();
+                        Log.i("TAG", "dismiss");
+                    }
+                })*/
+                    // 是否点击任意区域消失，默认true
+                    .dismissAnyWhere(true)
+                    // 若点击作用在高亮区域，是否执行高亮区域的点击事件，默认false
+                    .performViewClick(true)
+                    .build();
+
+            easyGuide.show();
+        }
     }
 
     private static View createTipsView(Activity activity, String message, int textColor, int textSize) {

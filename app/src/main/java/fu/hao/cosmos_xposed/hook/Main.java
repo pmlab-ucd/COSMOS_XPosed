@@ -109,10 +109,6 @@ public class Main implements IXposedHookLoadPackage {
 
                     if (param.thisObject instanceof View) {
                         sensitiveView = (View) param.thisObject;
-                        if (sensitiveView instanceof Button) {
-                            Button button = (Button) sensitiveView;
-                            ActivityHook.show(ActivityHook.getCurrentActivity(), button);
-                        }
                     }
                 }
 
@@ -297,12 +293,10 @@ public class Main implements IXposedHookLoadPackage {
                         ObjectInputStream is = new ObjectInputStream(inputStream);
                         LayoutData layoutData = (LayoutData) is.readObject();
                         is.close();
-                        //Log.w(TAG, "501");
 
                         if (!layoutData.getPkg().equals(lpparam.packageName)) {
                             return;
                         }
-                        //Log.w(TAG, "511");
 
                         StringBuilder stringBuilder = new StringBuilder();
                         for (String text : layoutData.getTexts()) {
@@ -360,6 +354,21 @@ public class Main implements IXposedHookLoadPackage {
 
                     Log.w(TAG, "Index: " + rindex);
                     Log.w(TAG, "Res: " + res);
+
+                    if (res.equals("1")) {
+                        param.setResult(null);
+                        Log.w(TAG, "Blocked!");
+                    } else {
+                        ActivityHook.getCurrentActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                // FIXME Event
+                                ActivityHook.show(ActivityHook.getCurrentActivity(), sensitiveView,
+                                lpparam.packageName, null);
+                            }
+                        });
+
+                    }
                 }
 
                 @Override
