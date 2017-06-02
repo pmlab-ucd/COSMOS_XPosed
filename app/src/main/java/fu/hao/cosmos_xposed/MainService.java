@@ -34,14 +34,15 @@ public class MainService extends Service {
                 WekaUtils.init(getContentResolver());
                 // MainApplication.getFileExternally(WekaUtils.STRING_VEC_FILTER_PATH));
                 String texts = intent.getStringExtra("texts");
+                String index = intent.getStringExtra("index");
                 if (texts != null && !texts.isEmpty()) {
                     Log.w(TAG, texts);
                     String res = WekaUtils.predict(texts, WekaUtils.getStringToWordVector(),
                             WekaUtils.getWekaModel(), null);
-                    Log.w(TAG, "Predicted as " + res);
+                    Log.w(TAG, index + ": Predicted as " + res);
 
                     ContentValues values = new ContentValues();
-                    values.put(MyContentProvider.PREDICTIONS_INDEX, texts);
+                    values.put(MyContentProvider.PREDICTIONS_INDEX, index);
                     values.put(MyContentProvider.PREDICTIONS_DATA, res);
                     getContentResolver().delete(PREDICTION_RES_URI, null, null);
                     Uri uri = getContentResolver().insert(PREDICTION_RES_URI, values);

@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -318,6 +319,8 @@ public class Main implements IXposedHookLoadPackage {
                     //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
                     Intent intent = new Intent();
                     intent.setComponent((new ComponentName("fu.hao.cosmos_xposed", "fu.hao.cosmos_xposed.MainService")));
+                    String index = String.valueOf((int)(Math.random() * 500)); // String.valueOf(texts.hashCode()); //
+                    intent.putExtra("index", index);
                     intent.putExtra("texts", texts);
                     application.startService(intent);
                     Log.w(TAG, "Staring MainService");
@@ -325,17 +328,18 @@ public class Main implements IXposedHookLoadPackage {
                     String res = "";
 
                     ContentResolver cr = application.getContentResolver();
-                    Cursor cursor = cr.query(PREDICTION_RES_URI, null, null, null, null);
-                    if (cursor == null) {
-                        Log.e(TAG, "Cannot get the cursor!");
-                        return;
-                    }
+                    Cursor cursor = null;
 
-                    String index = "";
+                    String rindex = "";
 
                     for (int i = 0; i < 10; i++) {
-                        if (!index.isEmpty()) {
-                            break;
+                        if (!rindex.isEmpty()) {
+                            if (rindex.equals(index)) {
+                                break;
+                            } else {
+                                rindex = "";
+                                res = "";
+                            }
                         }
                         cursor = cr.query(PREDICTION_RES_URI, null, null, null, null);
                         if (cursor == null) {
@@ -346,14 +350,16 @@ public class Main implements IXposedHookLoadPackage {
                             Log.e(TAG, " no content yet!");
                         } else {
                             do {
-                                index = index + cursor.getString(cursor.getColumnIndex(MyContentProvider.PREDICTIONS_INDEX));
+                                rindex = rindex + cursor.getString(cursor.getColumnIndex(MyContentProvider.PREDICTIONS_INDEX));
                                 res = res + cursor.getString(cursor.getColumnIndex(MyContentProvider.PREDICTIONS_DATA));
                             } while (cursor.moveToNext());
                         }
-                        Log.w(TAG, "Index: " + index);
-                        Log.w(TAG, "Res: " + res);
-                        Thread.sleep(20);
+
+                        Thread.sleep(10);
                     }
+
+                    Log.w(TAG, "Index: " + rindex);
+                    Log.w(TAG, "Res: " + res);
                 }
 
                 @Override
