@@ -19,7 +19,7 @@ import android.os.ParcelFileDescriptor;
 
 public class MyContentProvider extends ContentProvider {
     private static final String PROVIDER_NAME = "fu.hao.cosmos_xposed.utils.MyContentProvider";
-    private static final String URL = "content://" + PROVIDER_NAME + "/skholinguacp";
+    private static final String URL = "content://" + PROVIDER_NAME + "/layout_xml";
     public static final Uri LAYOUT_CONTENT_URI = Uri.parse(URL);
     private static final String MODEL_URL = "content://" + PROVIDER_NAME + "/model";
     public static final Uri MODEL_CONTENT_URI = Uri.parse(MODEL_URL);
@@ -46,6 +46,7 @@ public class MyContentProvider extends ContentProvider {
     private static final int LAYOUTS = 100;
     private static final int LAYOUTS_ID = 101;
 
+    public static final String INSTANCE_INDEX = "instanceIndex";
     public static final String INSTANCE_DATA = "instanceData";
     public static final String INSTANCE_LABEL = "instanceLabel";
     private static final int INSTANCES = 200;
@@ -61,8 +62,8 @@ public class MyContentProvider extends ContentProvider {
     static {
         uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
-        uriMatcher.addURI(PROVIDER_NAME, "layout", LAYOUTS);
-        uriMatcher.addURI(PROVIDER_NAME, "layout/*", LAYOUTS_ID);
+        uriMatcher.addURI(PROVIDER_NAME, "layout_xml", LAYOUTS);
+        uriMatcher.addURI(PROVIDER_NAME, "layout_xml/*", LAYOUTS_ID);
 
         uriMatcher.addURI(PROVIDER_NAME, "new_instances", INSTANCES);
         uriMatcher.addURI(PROVIDER_NAME, "new_instances/*", INSTANCES_ID);
@@ -82,6 +83,7 @@ public class MyContentProvider extends ContentProvider {
             + LAYOUT_DATA + " TEXT NOT NULL" + ");";
     private static final String CREATE_INSTANCE_TABLE = "CREATE TABLE " + INSTANCE_TABLE + "("
             //+ " (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            + INSTANCE_INDEX + " TEXT NOT NULL,"
             + INSTANCE_DATA + " TEXT NOT NULL,"
             + INSTANCE_LABEL + " TEXT NOT NULL"
             + ");";
@@ -183,7 +185,7 @@ public class MyContentProvider extends ContentProvider {
                 qb.setTables(INSTANCE_TABLE);
                 qb.setProjectionMap(values);
                 if (sortOrder == null || sortOrder == "") {
-                    sortOrder = INSTANCE_DATA;
+                    sortOrder = INSTANCE_INDEX;
                 }
                 break;
             case PREDICTIONS:

@@ -56,7 +56,12 @@ import weka.classifiers.trees.j48.ClassifierSplitModel;
 import static de.robv.android.xposed.XposedHelpers.findAndHookConstructor;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static fu.hao.cosmos_xposed.hook.Utils.readMethods;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.INSTANCE_INDEX;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.INSTANCE_LABEL;
 import static fu.hao.cosmos_xposed.utils.MyContentProvider.LAYOUT_CONTENT_URI;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.NEW_INSTANCE_CONTENT_URI;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.PREDICTIONS_DATA;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.PREDICTIONS_INDEX;
 import static fu.hao.cosmos_xposed.utils.MyContentProvider.PREDICTION_RES_URI;
 
 /**
@@ -118,7 +123,7 @@ public class Main implements IXposedHookLoadPackage {
                     Log.w(TAG, "End hooking method " + param.method);
 
                     Activity activity = ActivityHook.getCurrentActivity();
-                    if (activity != null) {
+                    /*if (activity != null) {
                         try {
                             final ViewGroup viewGroup = (ViewGroup) ((ViewGroup) activity
                                     .findViewById(android.R.id.content)).getChildAt(0);
@@ -128,11 +133,85 @@ public class Main implements IXposedHookLoadPackage {
                         }
                     } else {
                         Log.w(TAG, "Current Activity is missing!");
-                    }
+                    }*/
                 }
             };
             findAndHookMethod(xMethod.getDeclaredClass(), xMethod.getMethodName(), argus);
         }
+    }
+
+    public String getViewHierWithUIAutomator(final XC_LoadPackage.LoadPackageParam lpparam,
+                                             Application application) throws Exception {
+        String texts = "";
+        if (UIAccessibilityService.toXml) {
+            ContentResolver cr = application.getContentResolver();
+            Cursor cursor = cr.query(LAYOUT_CONTENT_URI, null, null, null, null);
+            if (cursor == null) {
+                Log.e(TAG, "Cannot get the cursor!");
+                return "";
+            }
+            String xmlData = ""; //cursor.getColumnIndex(MyContentProvider.name));
+
+            if (!cursor.moveToFirst()) {
+                Log.e(TAG, xmlData + " no content yet!");
+            } else {
+                do {
+                    xmlData = xmlData + cursor.getString(cursor.getColumnIndex(MyContentProvider.LAYOUT_DATA));
+                } while (cursor.moveToNext());
+            }
+
+            Log.w(TAG, "XMLData: " + xmlData);
+            //param.args[0] = "10086";
+            // File layoutFile = MainApplication.getFileExternally("layout.xml");
+
+            if (xmlData.length() < 1) {
+                return "";
+            }
+            NodeList nodeList = XMLParser.getNodeList(xmlData);//layoutFile);
+            boolean samePkg = false;
+            for (String pkgClass : XMLParser.getPkg(nodeList)) {
+                if (pkgClass.equals(lpparam.packageName)) {
+                    samePkg = true;
+                    break;
+                }
+            }
+            if (!samePkg) {
+                return "";
+            }
+
+            StringBuilder stringBuilder = new StringBuilder();
+            for (String text : XMLParser.getTexts(nodeList)) {
+                stringBuilder.append(text);
+            }
+
+            texts = stringBuilder.toString();
+        } else {
+            InputStream inputStream = application.getContentResolver().openInputStream(
+                    MyContentProvider.LAYOUT_DATA_CONTENT_URI);
+            ObjectInputStream is = new ObjectInputStream(inputStream);
+            LayoutData layoutData = (LayoutData) is.readObject();
+            is.close();
+
+            if (!layoutData.getPkg().equals(lpparam.packageName)) {
+                return "";
+            }
+
+            StringBuilder stringBuilder = new StringBuilder();
+            for (String text : layoutData.getTexts()) {
+                stringBuilder.append(text + ";");
+            }
+            texts = stringBuilder.toString();
+        }
+
+        return texts;
+    }
+
+    public String getTexts(Activity activity) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (String text : ActivityHook.toLayoutXML(activity).getTexts()) {
+            stringBuilder.append(text + ";");
+        }
+        return stringBuilder.toString();
     }
 
 
@@ -244,66 +323,7 @@ public class Main implements IXposedHookLoadPackage {
 
                     //ActivityManager am = (ActivityManager) application.getSystemService(Context.ACTIVITY_SERVICE);
                     //ComponentName cn = am.getRunningTasks(1).get(0).topActivity;
-                    String texts = "";
-                    if (UIAccessibilityService.toXml) {
-                        ContentResolver cr = application.getContentResolver();
-                        Cursor cursor = cr.query(LAYOUT_CONTENT_URI, null, null, null, null);
-                        if (cursor == null) {
-                            Log.e(TAG, "Cannot get the cursor!");
-                            return;
-                        }
-                        String xmlData = ""; //cursor.getColumnIndex(MyContentProvider.name));
-
-                        if (!cursor.moveToFirst()) {
-                            Log.e(TAG, xmlData + " no content yet!");
-                        } else {
-                            do {
-                                xmlData = xmlData + cursor.getString(cursor.getColumnIndex(MyContentProvider.LAYOUT_DATA));
-                            } while (cursor.moveToNext());
-                        }
-
-                        Log.w(TAG, "XMLData: " + xmlData);
-                        //param.args[0] = "10086";
-                        // File layoutFile = MainApplication.getFileExternally("layout.xml");
-
-                        if (xmlData.length() < 1) {
-                            return;
-                        }
-                        NodeList nodeList = XMLParser.getNodeList(xmlData);//layoutFile);
-                        boolean samePkg = false;
-                        for (String pkgClass : XMLParser.getPkg(nodeList)) {
-                            if (pkgClass.equals(lpparam.packageName)) {
-                                samePkg = true;
-                                break;
-                            }
-                        }
-                        if (!samePkg) {
-                            return;
-                        }
-
-                        StringBuilder stringBuilder = new StringBuilder();
-                        for (String text : XMLParser.getTexts(nodeList)) {
-                            stringBuilder.append(text);
-                        }
-
-                        texts = stringBuilder.toString();
-                    } else {
-                        InputStream inputStream = application.getContentResolver().openInputStream(
-                                MyContentProvider.LAYOUT_DATA_CONTENT_URI);
-                        ObjectInputStream is = new ObjectInputStream(inputStream);
-                        LayoutData layoutData = (LayoutData) is.readObject();
-                        is.close();
-
-                        if (!layoutData.getPkg().equals(lpparam.packageName)) {
-                            return;
-                        }
-
-                        StringBuilder stringBuilder = new StringBuilder();
-                        for (String text : layoutData.getTexts()) {
-                            stringBuilder.append(text + ";");
-                        }
-                        texts = stringBuilder.toString();
-                    }
+                    String texts = getTexts(ActivityHook.getCurrentActivity());
 
                     Log.w(TAG, "Texts: " + texts);
                     if (texts.length() < 1) {
@@ -319,40 +339,7 @@ public class Main implements IXposedHookLoadPackage {
                     application.startService(intent);
                     Log.w(TAG, "Staring MainService");
 
-                    String res = "";
-
-                    ContentResolver cr = application.getContentResolver();
-                    Cursor cursor = null;
-
-                    String rindex = "";
-
-                    for (int i = 0; i < 10; i++) {
-                        if (!rindex.isEmpty()) {
-                            if (rindex.equals(index)) {
-                                break;
-                            } else {
-                                rindex = "";
-                                res = "";
-                            }
-                        }
-                        cursor = cr.query(PREDICTION_RES_URI, null, null, null, null);
-                        if (cursor == null) {
-                            Log.e(TAG, "Cannot get the cursor!");
-                            return;
-                        }
-                        if (!cursor.moveToFirst()) {
-                            Log.e(TAG, " no content yet!");
-                        } else {
-                            do {
-                                rindex = rindex + cursor.getString(cursor.getColumnIndex(MyContentProvider.PREDICTIONS_INDEX));
-                                res = res + cursor.getString(cursor.getColumnIndex(MyContentProvider.PREDICTIONS_DATA));
-                            } while (cursor.moveToNext());
-                        }
-
-                        Thread.sleep(10);
-                    }
-
-                    Log.w(TAG, "Index: " + rindex);
+                    String res = Utils.checkResults(PREDICTION_RES_URI, index, PREDICTIONS_INDEX, PREDICTIONS_DATA, 10, 10);
                     Log.w(TAG, "Res: " + res);
 
 
@@ -361,14 +348,17 @@ public class Main implements IXposedHookLoadPackage {
                         Log.w(TAG, "Blocked!");
                     } else {
                         final String instanceTexts = texts;
+                        final String fIndex = index;
                         ActivityHook.getCurrentActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 // FIXME Event
                                 ActivityHook.show(ActivityHook.getCurrentActivity(), sensitiveView,
-                                lpparam.packageName, null, instanceTexts);
+                                lpparam.packageName, null, instanceTexts, fIndex);
                             }
                         });
+                        res = Utils.checkResults(NEW_INSTANCE_CONTENT_URI, fIndex, INSTANCE_INDEX, INSTANCE_LABEL, 100, 500);
+                        Log.w(TAG, "User Decision: " + res);
                     }
                 }
 

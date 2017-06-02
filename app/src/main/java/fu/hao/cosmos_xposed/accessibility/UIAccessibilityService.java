@@ -42,7 +42,7 @@ import static fu.hao.cosmos_xposed.utils.MyContentProvider.WHO_CONTENT_URI;
 public class UIAccessibilityService extends android.accessibilityservice.AccessibilityService {
     private static final String TAG = UIAccessibilityService.class.getName();
 
-    public static boolean toXml = false;
+    public static boolean toXml = true;
 
     @Override
     protected void onServiceConnected() {

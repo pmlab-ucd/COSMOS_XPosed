@@ -3,6 +3,9 @@ package fu.hao.cosmos_xposed.hook;
 import android.app.Activity;
 import android.app.AndroidAppHelper;
 import android.app.Application;
+import android.content.ContentResolver;
+import android.database.Cursor;
+import android.net.Uri;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -14,7 +17,10 @@ import java.util.Map;
 import java.util.Set;
 
 import fu.hao.cosmos_xposed.MainApplication;
+import fu.hao.cosmos_xposed.utils.MyContentProvider;
 import weka.filters.unsupervised.attribute.StringToWordVector;
+
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.PREDICTION_RES_URI;
 
 /**
  * Created by majestyhao on 2017/6/1.
@@ -213,5 +219,44 @@ public class Utils {
             application = AndroidAppHelper.currentApplication();
         }
         return application;
+    }
+
+    public static String checkResults(Uri uri, String index, String dbIndex, String dbData, int times, int interval) throws InterruptedException {
+        String res = "";
+        ContentResolver cr = application.getContentResolver();
+        Cursor cursor = null;
+
+        String rindex = "";
+        for (int i = 0; i < times; i++) {
+            if (!rindex.isEmpty()) {
+                if (rindex.equals(index)) {
+                    break;
+                } else {
+                    rindex = "";
+                    res = "";
+                }
+            }
+            cursor = cr.query(uri, null, null, null, null);
+            if (cursor == null) {
+                Log.e(TAG, "Cannot get the cursor!");
+                return res;
+            }
+            if (!cursor.moveToFirst()) {
+                Log.e(TAG, " no content yet!");
+            } else {
+                try {
+                    do {
+                        rindex = rindex + cursor.getString(cursor.getColumnIndex(dbIndex));
+                        res = res + cursor.getString(cursor.getColumnIndex(dbData));
+                    } while (cursor.moveToNext());
+                } catch (IllegalStateException e) {
+                    Log.e(TAG, e.getMessage());
+                }
+            }
+
+            Thread.sleep(interval);
+        }
+
+        return res;
     }
 }

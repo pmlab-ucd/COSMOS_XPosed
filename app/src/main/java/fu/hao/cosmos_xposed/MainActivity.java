@@ -56,13 +56,13 @@ public class MainActivity extends AppCompatActivity {
         } */
 
 
-        SelfAdaptiveLearning.storeNewInstance(getContentResolver(), "T", "Heblle lsds");
+        /*SelfAdaptiveLearning.storeNewInstance(getContentResolver(), "T", "Heblle lsds");
         try {
             WekaUtils.init(getContentResolver());
             SelfAdaptiveLearning.doIt(getContentResolver(), (HoeffdingTree) WekaUtils.getWekaModel());
         } catch (Exception exception) {
                 exception.printStackTrace();
-            }
+           }*/
         }
 
     @Override

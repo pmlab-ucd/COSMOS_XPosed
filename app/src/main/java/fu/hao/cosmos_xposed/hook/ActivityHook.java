@@ -2,6 +2,7 @@ package fu.hao.cosmos_xposed.hook;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -26,9 +27,15 @@ import org.w3c.dom.Element;
 
 import java.util.List;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
 import de.robv.android.xposed.XC_MethodHook;
 import fu.hao.cosmos_xposed.MainActivity;
 import fu.hao.cosmos_xposed.R;
+import fu.hao.cosmos_xposed.accessibility.LayoutData;
 import fu.hao.cosmos_xposed.utils.MyContentProvider;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
@@ -61,18 +68,19 @@ public class ActivityHook extends XC_MethodHook {
 
     }
 
-    public static void checkView(View view) {
+    public static void checkView(View view, Document doc, Element element, List<String> texts) {
         if (view == null) {
             return;
         }
 
+        /*
         view.setClickable(true);
         Log.v(TAG, view.toString());
         if (view instanceof Button) {
             Button button = (Button) view;
             Log.w(TAG, button.getText().toString());
             button.setTextColor(Color.BLACK);
-        }
+        }*/
 
         if (view instanceof ViewGroup) {
             ViewGroup viewGroup = (ViewGroup) view;
@@ -83,16 +91,75 @@ public class ActivityHook extends XC_MethodHook {
                     continue;
                 }
 
-                checkView(childNode);
+                Element childElement = doc.createElement("node");
+                element.appendChild(childElement);
+
+                try {
+                    childElement.setAttribute("id", childNode.getResources().getResourceName(childNode.getId()) == null ?
+                            "" : childNode.getResources().getResourceName(childNode.getId()));//getNodeId(childNode));
+                } catch (Exception e) {
+                    childElement.setAttribute("id", "");
+                }
+                childElement.setAttribute("class", childNode.getClass().toString());
+                //childElement.setAttribute("bounds", childNode.getBoundsInScreen());
+                childElement.setAttribute("selected", childNode.isSelected() ? "true" : "false");
+                //childElement.setAttribute("password", childNode.isPassword() ? "true" : "false");
+                childElement.setAttribute("long-clickable", childNode.isLongClickable() ? "true" : "false");
+                //childElement.setAttribute("scrollable", childNode.isScrollContainer() ? "true" : "false");
+                childElement.setAttribute("focused", childNode.isFocused() ? "true" : "false");
+                childElement.setAttribute("focusable", childNode.isFocusable() ? "true" : "false");
+                childElement.setAttribute("enabled", childNode.isEnabled() ? "true" : "false");
+                childElement.setAttribute("clickable", childNode.isClickable() ? "true" : "false");
+                //childElement.setAttribute("checked", childNode. ? "true" : "false");
+                childElement.setAttribute("checkable", childNode.isClickable() ? "true" : "false");
+                childElement.setAttribute("content-desc", childNode.getContentDescription() == null ?
+                        "" : childNode.getContentDescription().toString());
+                childElement.setAttribute("package", childNode.getContext().getPackageName());
+
+                if (childNode instanceof TextView) {
+                    TextView textView = (TextView) childNode;
+                    childElement.setAttribute("text", textView.getText() == null ? "" :
+                            textView.getText().toString());
+                    if (textView.getText() != null) {
+                        texts.add(textView.getText().toString());
+                    }
+                }
+
+                childElement.setAttribute("index", Integer.toString(i));
+
+                checkView(childNode, doc, element, texts);
             }
         }
+    }
+
+    public static LayoutData toLayoutXML(Activity activity) {
+        LayoutData layoutData = new LayoutData();
+        layoutData.setPkg(activity.getPackageName());
+        final ViewGroup viewGroup = (ViewGroup) ((ViewGroup) activity
+                .findViewById(android.R.id.content)).getChildAt(0);
+
+        try {
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+
+            // root elements
+            Document doc = docBuilder.newDocument();
+            Element rootElement = doc.createElement("hierarchy");
+            doc.appendChild(rootElement);
+
+            checkView(viewGroup, doc, rootElement, layoutData.getTexts());
+        } catch (ParserConfigurationException pce){
+            pce.printStackTrace();
+        }
+
+        return layoutData;
     }
 
     // 须在View绘制完成之后调用，否则可能无法准确显示
 // offsetX:正数代表从屏幕左侧往右偏移距离，负数表示从屏幕右侧往左偏移距离。Constant.CENTER 表示居中
 // offsetY:同理。正数由上到下，负数由下到上。Constant.CENTER 表示居中
-    public static void show(Activity activity, View view, String pkg, String event, final String instanceData) {
-
+    public static void show(Activity activity, View view, String pkg, String event,
+                            final String instanceData, final String instanceIndex) {
         if (view != null) {
             if (easyGuide != null && easyGuide.isShowing())
                 easyGuide.dismiss();
@@ -155,7 +222,7 @@ public class ActivityHook extends XC_MethodHook {
                     }
                 })*/
                     // 是否点击任意区域消失，默认true
-                    .dismissAnyWhere(true)
+                    //.dismissAnyWhere(true)
                     // 若点击作用在高亮区域，是否执行高亮区域的点击事件，默认false
                     .performViewClick(true)
                     .build();
@@ -198,6 +265,7 @@ public class ActivityHook extends XC_MethodHook {
                 @Override
                 public void onClick(View view) {
                     ContentValues values = new ContentValues();
+                    values.put(MyContentProvider.INSTANCE_INDEX, instanceIndex);
                     values.put(MyContentProvider.INSTANCE_LABEL, "0");
                     values.put(MyContentProvider.INSTANCE_DATA, instanceData);
                     //getContentResolver().delete(PREDICTION_RES_URI, null, null);
@@ -215,6 +283,7 @@ public class ActivityHook extends XC_MethodHook {
                 @Override
                 public void onClick(View view) {
                     ContentValues values = new ContentValues();
+                    values.put(MyContentProvider.INSTANCE_INDEX, instanceIndex);
                     values.put(MyContentProvider.INSTANCE_LABEL, "1");
                     values.put(MyContentProvider.INSTANCE_DATA, instanceData);
                     //getContentResolver().delete(PREDICTION_RES_URI, null, null);
@@ -249,7 +318,7 @@ public class ActivityHook extends XC_MethodHook {
                     }
                 })*/
                     // 是否点击任意区域消失，默认true
-                    .dismissAnyWhere(true)
+                    //.dismissAnyWhere(true)
                     // 若点击作用在高亮区域，是否执行高亮区域的点击事件，默认false
                     //.performViewClick(true)
                     .build();
