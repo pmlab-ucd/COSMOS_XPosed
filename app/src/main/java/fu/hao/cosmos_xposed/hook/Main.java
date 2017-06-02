@@ -355,19 +355,20 @@ public class Main implements IXposedHookLoadPackage {
                     Log.w(TAG, "Index: " + rindex);
                     Log.w(TAG, "Res: " + res);
 
+
                     if (res.equals("1")) {
                         param.setResult(null);
                         Log.w(TAG, "Blocked!");
                     } else {
+                        final String instanceTexts = texts;
                         ActivityHook.getCurrentActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 // FIXME Event
                                 ActivityHook.show(ActivityHook.getCurrentActivity(), sensitiveView,
-                                lpparam.packageName, null);
+                                lpparam.packageName, null, instanceTexts);
                             }
                         });
-
                     }
                 }
 

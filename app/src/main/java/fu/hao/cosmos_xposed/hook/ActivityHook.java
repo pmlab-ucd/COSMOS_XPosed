@@ -1,7 +1,9 @@
 package fu.hao.cosmos_xposed.hook;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 import android.view.Gravity;
@@ -27,9 +29,12 @@ import java.util.List;
 import de.robv.android.xposed.XC_MethodHook;
 import fu.hao.cosmos_xposed.MainActivity;
 import fu.hao.cosmos_xposed.R;
+import fu.hao.cosmos_xposed.utils.MyContentProvider;
 
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.NEW_INSTANCE_CONTENT_URI;
+import static fu.hao.cosmos_xposed.utils.MyContentProvider.PREDICTION_RES_URI;
 
 /**
  * Description:
@@ -86,7 +91,7 @@ public class ActivityHook extends XC_MethodHook {
     // 须在View绘制完成之后调用，否则可能无法准确显示
 // offsetX:正数代表从屏幕左侧往右偏移距离，负数表示从屏幕右侧往左偏移距离。Constant.CENTER 表示居中
 // offsetY:同理。正数由上到下，负数由下到上。Constant.CENTER 表示居中
-    public static void show(Activity activity, View view, String pkg, String event) {
+    public static void show(Activity activity, View view, String pkg, String event, final String instanceData) {
 
         if (view != null) {
             if (easyGuide != null && easyGuide.isShowing())
@@ -189,11 +194,36 @@ public class ActivityHook extends XC_MethodHook {
             //View tipsView = createTipsView(activity);
 
             View allowView = createTipsView(activity, "Allow", Color.GREEN, 18);
+            allowView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    ContentValues values = new ContentValues();
+                    values.put(MyContentProvider.INSTANCE_LABEL, "0");
+                    values.put(MyContentProvider.INSTANCE_DATA, instanceData);
+                    //getContentResolver().delete(PREDICTION_RES_URI, null, null);
+                    Uri uri = view.getContext().getContentResolver().
+                            insert(NEW_INSTANCE_CONTENT_URI, values);
+                    Log.i(TAG, "New instance stored: " + uri);
+                    easyGuide.dismiss();
+                }
+            });
             mTipView.addView(allowView);
             int[] allowViewLoc = new int[2];
             allowView.getLocationOnScreen(allowViewLoc);
             View denyView = createTipsView(activity, "Deny", Color.RED, 18);
-            //denyView.setOnClickListener();
+            denyView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    ContentValues values = new ContentValues();
+                    values.put(MyContentProvider.INSTANCE_LABEL, "1");
+                    values.put(MyContentProvider.INSTANCE_DATA, instanceData);
+                    //getContentResolver().delete(PREDICTION_RES_URI, null, null);
+                    Uri uri = view.getContext().getContentResolver().
+                            insert(NEW_INSTANCE_CONTENT_URI, values);
+                    Log.i(TAG, "New instance stored: " + uri);
+                    easyGuide.dismiss();
+                }
+            });
             mTipView.addView(denyView);
 
             easyGuide = new EasyGuide.Builder(activity)
@@ -221,7 +251,7 @@ public class ActivityHook extends XC_MethodHook {
                     // 是否点击任意区域消失，默认true
                     .dismissAnyWhere(true)
                     // 若点击作用在高亮区域，是否执行高亮区域的点击事件，默认false
-                    .performViewClick(true)
+                    //.performViewClick(true)
                     .build();
 
             easyGuide.show();
