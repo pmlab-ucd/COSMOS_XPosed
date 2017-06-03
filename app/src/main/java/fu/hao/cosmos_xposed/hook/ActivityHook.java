@@ -222,7 +222,7 @@ public class ActivityHook extends XC_MethodHook {
                     }
                 })*/
                     // 是否点击任意区域消失，默认true
-                    //.dismissAnyWhere(true)
+                    .dismissAnyWhere(false)
                     // 若点击作用在高亮区域，是否执行高亮区域的点击事件，默认false
                     .performViewClick(true)
                     .build();
@@ -318,7 +318,7 @@ public class ActivityHook extends XC_MethodHook {
                     }
                 })*/
                     // 是否点击任意区域消失，默认true
-                    //.dismissAnyWhere(true)
+                    .dismissAnyWhere(false)
                     // 若点击作用在高亮区域，是否执行高亮区域的点击事件，默认false
                     //.performViewClick(true)
                     .build();

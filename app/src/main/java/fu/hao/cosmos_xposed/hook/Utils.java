@@ -227,14 +227,10 @@ public class Utils {
         Cursor cursor = null;
 
         String rindex = "";
+        boolean found = false;
         for (int i = 0; i < times; i++) {
-            if (!rindex.isEmpty()) {
-                if (rindex.equals(index)) {
-                    break;
-                } else {
-                    rindex = "";
-                    res = "";
-                }
+            if (found) {
+                break;
             }
             cursor = cr.query(uri, null, null, null, null);
             if (cursor == null) {
@@ -246,11 +242,18 @@ public class Utils {
             } else {
                 try {
                     do {
-                        rindex = rindex + cursor.getString(cursor.getColumnIndex(dbIndex));
-                        res = res + cursor.getString(cursor.getColumnIndex(dbData));
+                        rindex = cursor.getString(cursor.getColumnIndex(dbIndex));
+                        res = cursor.getString(cursor.getColumnIndex(dbData));
+                        if (rindex.equals(index)) {
+                            found = true;
+                            break;
+                        }
+                        Log.v(TAG, "sub: " + rindex);
                     } while (cursor.moveToNext());
                 } catch (IllegalStateException e) {
                     Log.e(TAG, e.getMessage());
+                } finally {
+                    cursor.close();
                 }
             }
 

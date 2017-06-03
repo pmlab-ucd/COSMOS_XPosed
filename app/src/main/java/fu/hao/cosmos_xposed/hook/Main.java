@@ -333,7 +333,7 @@ public class Main implements IXposedHookLoadPackage {
                     //MainApplication.getFileExternally(WekaUtils.MODEL_FILE_PATH));
                     Intent intent = new Intent();
                     intent.setComponent((new ComponentName("fu.hao.cosmos_xposed", "fu.hao.cosmos_xposed.MainService")));
-                    String index = String.valueOf((int)(Math.random() * 500)); // String.valueOf(texts.hashCode()); //
+                    String index = String.valueOf(texts.hashCode());// String.valueOf((int)(Math.random() * 500)); // String.valueOf(texts.hashCode()); //
                     intent.putExtra("index", index);
                     intent.putExtra("texts", texts);
                     application.startService(intent);
